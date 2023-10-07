@@ -89,6 +89,14 @@ public class WordAnalyser {
         char[] charArray = formatstr.toCharArray();
         for (int i = 1; i < charArray.length - 1; i++) {
             int cVal = charArray[i];
+            if (cVal == 37) {
+                if (charArray[i + 1] != 'd') {
+                    return false;
+                } else {
+                    i++;
+                    continue;
+                }
+            }
             if (cVal <= 31 || cVal >= 34 && cVal <= 39 || cVal >= 127) {
                 return false;
             } else if (cVal == 92 && charArray[i + 1] != 'n') {
