@@ -1,10 +1,9 @@
 package SyntaxAnalyse;
 
-import CompileError.CompileException;
+import ErrorHandler.CompileError.CompileException;
+import ErrorHandler.ErrorManager;
 import LexicalAnalyse.Lexer;
 import SyntaxAnalyse.SyntaxTree.SyntaxNodeType;
-
-import javax.swing.plaf.basic.BasicLabelUI;
 
 public class DeclParser extends Parser {
     public DeclParser(Lexer lexer) {
@@ -12,11 +11,16 @@ public class DeclParser extends Parser {
     }
 
     public void parse() throws CompileException {
+        buildIntermediateNode(SyntaxNodeType.Decl);
         if (lexer.getSrc().equals("const")) {
             constDecl();
         } else {
             varDecl();
         }
+        if (lexer.getSrc().equals("(")) {
+            throw new CompileException(lexer.getLineNumber());
+        }
+        buildDone();
     }
 
     private void constDecl() throws CompileException {
@@ -28,7 +32,14 @@ public class DeclParser extends Parser {
             buildLeaf(",");
             constDef();
         }
-        buildLeaf(";");
+        try {
+            record();
+            buildLeaf(";");
+            release();
+        } catch (CompileException e) {
+            back();
+            ErrorManager.addError('i', lexer.getLastLineNumber());
+        }
         buildDone();
     }
 
@@ -39,7 +50,14 @@ public class DeclParser extends Parser {
         while (lexer.getSrc().equals("[")) {
             buildLeaf("[");
             constExp();
-            buildLeaf("]");
+            try {
+                record();
+                buildLeaf("]");
+                release();
+            } catch (CompileException e) {
+                back();
+                ErrorManager.addError('k', lexer.getLastLineNumber());
+            }
         }
         buildLeaf("=");
         constInitVal();
@@ -48,7 +66,6 @@ public class DeclParser extends Parser {
 
 
     private void constInitVal() throws CompileException {
-        //TODO:怎么区分constExp和exp？
         buildIntermediateNode(SyntaxNodeType.ConstInitVal);
         try {
             record();
@@ -77,7 +94,14 @@ public class DeclParser extends Parser {
             buildLeaf(",");
             varDef();
         }
-        buildLeaf(";");
+        try {
+            record();
+            buildLeaf(";");
+            release();
+        } catch (CompileException e) {
+            back();
+            ErrorManager.addError('i', lexer.getLastLineNumber());
+        }
         buildDone();
     }
 
@@ -87,7 +111,14 @@ public class DeclParser extends Parser {
         while (lexer.getSrc().equals("[")) {
             buildLeaf("[");
             constExp();
-            buildLeaf("]");
+            try {
+                record();
+                buildLeaf("]");
+                release();
+            } catch (CompileException e) {
+                back();
+                ErrorManager.addError('k', lexer.getLastLineNumber());
+            }
         }
         if (lexer.getSrc().equals("=")) {
             buildLeaf("=");

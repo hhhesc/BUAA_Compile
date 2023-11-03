@@ -1,6 +1,7 @@
 package SyntaxAnalyse;
 
-import CompileError.CompileException;
+import ErrorHandler.CompileError.CompileException;
+import ErrorHandler.ErrorManager;
 import LexicalAnalyse.Lexer;
 import SyntaxAnalyse.SyntaxTree.SyntaxNodeType;
 
@@ -21,10 +22,17 @@ public class FuncDefParser extends Parser {
         }
         ident();
         buildLeaf("(");
-        if (!lexer.getSrc().equals(")")) {
+        if (!(lexer.getSrc().equals(")") || lexer.getSrc().equals("{"))) {
             funcFParams();
         }
-        buildLeaf(")");
+        try {
+            record();
+            buildLeaf(")");
+            release();
+        } catch (CompileException e) {
+            back();
+            ErrorManager.addError('j', lexer.getLastLineNumber());
+        }
         block();
         buildDone();
     }
@@ -55,11 +63,25 @@ public class FuncDefParser extends Parser {
         ident();
         if (lexer.getSrc().equals("[")) {
             buildLeaf("[");
-            buildLeaf("]");
+            try {
+                record();
+                buildLeaf("]");
+                release();
+            } catch (CompileException e) {
+                back();
+                ErrorManager.addError('k', lexer.getLastLineNumber());
+            }
             while (lexer.getSrc().equals("[")) {
                 buildLeaf("[");
                 constExp();
-                buildLeaf("]");
+                try {
+                    record();
+                    buildLeaf("]");
+                    release();
+                } catch (CompileException e) {
+                    back();
+                    ErrorManager.addError('k', lexer.getLastLineNumber());
+                }
             }
         }
         buildDone();
@@ -70,7 +92,14 @@ public class FuncDefParser extends Parser {
         buildLeaf("int");
         buildLeaf("main");
         buildLeaf("(");
-        buildLeaf(")");
+        try {
+            record();
+            buildLeaf(")");
+            release();
+        } catch (CompileException e) {
+            back();
+            ErrorManager.addError('j', lexer.getLastLineNumber());
+        }
         block();
         buildDone();
     }

@@ -1,6 +1,7 @@
 package SyntaxAnalyse;
 
-import CompileError.CompileException;
+import ErrorHandler.CompileError.CompileException;
+import ErrorHandler.ErrorManager;
 import LexicalAnalyse.Lexer;
 import LexicalAnalyse.Words.FormatString;
 import SyntaxAnalyse.SyntaxTree.SyntaxNodeType;
@@ -15,7 +16,6 @@ public class StmtParser extends Parser {
     }
 
     protected void stmt() throws CompileException {
-        buildIntermediateNode(SyntaxNodeType.Stmt);
         try {
             record();
             lValAssignStmt();
@@ -25,14 +25,25 @@ public class StmtParser extends Parser {
             try {
                 record();
                 exp();
-                buildLeaf(";");
+                try {
+                    record();
+                    buildLeaf(";");
+                    release();
+                } catch (CompileException e) {
+                    back();
+                    ErrorManager.addError('i', lexer.getLastLineNumber());
+                }
                 release();
-            } catch (CompileException ignoredTwice) {
+            } catch (CompileException e) {
                 back();
                 String next = lexer.getSrc();
                 switch (next) {
-                    case ";" -> buildLeaf(";");
-                    case "{" -> block();
+                    case ";" -> {
+//                        buildIntermediateNode(SyntaxNodeType.Stmt);
+                        buildLeaf(";");
+//                        buildDone();
+                    }
+                    case "{" -> blockStmt();
                     case "if" -> ifStmt();
                     case "for" -> theForStmt();
                     case "break" -> breakStmt();
@@ -42,21 +53,63 @@ public class StmtParser extends Parser {
                 }
             }
         }
+    }
+
+    public void blockStmt() throws CompileException {
+        buildIntermediateNode(SyntaxNodeType.BlockStmt);
+        block();
         buildDone();
     }
 
     private void lValAssignStmt() throws CompileException {
+        try {
+            record();
+            lValAssignExpStmt();
+            release();
+        } catch (CompileException e) {
+            back();
+            lValAssignGetIntStmt();
+        }
+    }
+
+    private void lValAssignExpStmt() throws CompileException {
         buildIntermediateNode(SyntaxNodeType.LValAssignExpStmt);
         lVal();
         buildLeaf("=");
-        if (lexer.getSrc().equals("getint")) {
-            buildLeaf("getint");
-            buildLeaf("(");
-            buildLeaf(")");
-        } else {
-            exp();
+        exp();
+        try {
+            record();
+            buildLeaf(";");
+            release();
+        } catch (CompileException e) {
+            back();
+            ErrorManager.addError('i', lexer.getLastLineNumber());
         }
-        buildLeaf(";");
+        buildDone();
+    }
+
+    private void lValAssignGetIntStmt() throws CompileException {
+        buildIntermediateNode(SyntaxNodeType.LValAssignGetIntStmt);
+        lVal();
+        buildLeaf("=");
+        buildLeaf("getint");
+        buildLeaf("(");
+        try {
+            record();
+            buildLeaf(")");
+            release();
+        } catch (CompileException e) {
+            back();
+            ErrorManager.addError('j', lexer.getLastLineNumber());
+        }
+        try {
+            record();
+            buildLeaf(";");
+            release();
+        } catch (CompileException e) {
+            back();
+            ErrorManager.addError('i', lexer.getLastLineNumber());
+        }
         buildDone();
     }
 
@@ -66,7 +119,14 @@ public class StmtParser extends Parser {
         buildLeaf("if");
         buildLeaf("(");
         cond();
-        buildLeaf(")");
+        try {
+            record();
+            buildLeaf(")");
+            release();
+        } catch (CompileException e) {
+            back();
+            ErrorManager.addError('j', lexer.getLastLineNumber());
+        }
         stmt();
         if (lexer.getSrc().equals("else")) {
             buildLeaf("else");
@@ -80,22 +140,29 @@ public class StmtParser extends Parser {
         buildLeaf("for");
         buildLeaf("(");
         if (!lexer.getSrc().equals(";")) {
-            forStmtStmt();
+            forStmt();
         }
         buildLeaf(";");
         if (!lexer.getSrc().equals(";")) {
             cond();
         }
         buildLeaf(";");
-        if (!lexer.getSrc().equals(")")) {
-            forStmtStmt();
+        if (!(lexer.getSrc().equals(")") || lexer.getSrc().equals("{"))) {
+            forStmt();
         }
-        buildLeaf(")");
+        try {
+            record();
+            buildLeaf(")");
+            release();
+        } catch (CompileException e) {
+            back();
+            ErrorManager.addError('j', lexer.getLastLineNumber());
+        }
         stmt();
         buildDone();
     }
 
-    private void forStmtStmt() throws CompileException {
+    private void forStmt() throws CompileException {
         buildIntermediateNode(SyntaxNodeType.ForStmt);
         lVal();
         buildLeaf("=");
@@ -106,24 +173,50 @@ public class StmtParser extends Parser {
     private void breakStmt() throws CompileException {
         buildIntermediateNode(SyntaxNodeType.BreakStmt);
         buildLeaf("break");
-        buildLeaf(";");
+        try {
+            record();
+            buildLeaf(";");
+            release();
+        } catch (CompileException e) {
+            back();
+            ErrorManager.addError('i', lexer.getLastLineNumber());
+        }
         buildDone();
     }
 
     private void continueStmt() throws CompileException {
         buildIntermediateNode(SyntaxNodeType.ContinueStmt);
         buildLeaf("continue");
-        buildLeaf(";");
+        try {
+            record();
+            buildLeaf(";");
+            release();
+        } catch (CompileException e) {
+            back();
+            ErrorManager.addError('i', lexer.getLastLineNumber());
+        }
         buildDone();
     }
 
     private void returnStmt() throws CompileException {
         buildIntermediateNode(SyntaxNodeType.ReturnStmt);
         buildLeaf("return");
-        if (!lexer.getSrc().equals(";")) {
+        try {
+            record();
             exp();
+            release();
+        } catch (CompileException e) {
+            back();
         }
-        buildLeaf(";");
+//        exp();
+        try {
+            record();
+            buildLeaf(";");
+            release();
+        } catch (CompileException e) {
+            back();
+            ErrorManager.addError('i', lexer.getLastLineNumber());
+        }
         buildDone();
     }
 
@@ -132,12 +225,26 @@ public class StmtParser extends Parser {
         buildLeaf("printf");
         buildLeaf("(");
         formatString();
-        while (!lexer.getSrc().equals(")")) {
+        while (lexer.getSrc().equals(",")) {
             buildLeaf(",");
             exp();
         }
-        buildLeaf(")");
-        buildLeaf(";");
+        try {
+            record();
+            buildLeaf(")");
+            release();
+        } catch (CompileException e) {
+            back();
+            ErrorManager.addError('j', lexer.getLastLineNumber());
+        }
+        try {
+            record();
+            buildLeaf(";");
+            release();
+        } catch (CompileException e) {
+            back();
+            ErrorManager.addError('i', lexer.getLastLineNumber());
+        }
         buildDone();
     }
 

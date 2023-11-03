@@ -1,4 +1,4 @@
-package CompileError;
+package ErrorHandler.CompileError;
 
 public class CompileException extends Exception {
     char typeCode;
@@ -9,9 +9,13 @@ public class CompileException extends Exception {
         this.lineNumber = lineNumber;
     }
 
-    public CompileException(char typeCode,int lineNumber) {
+    public CompileException(char typeCode, int lineNumber) {
         this.typeCode = typeCode;
         this.lineNumber = lineNumber;
+    }
+
+    public String toString() {
+        return lineNumber + " " + typeCode;
     }
 
 }

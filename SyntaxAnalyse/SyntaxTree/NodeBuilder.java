@@ -30,12 +30,12 @@ public class NodeBuilder {
             case Block -> new Block(parent);
             case FuncFParam -> new FuncFParam(parent);
             case BlockItem -> new BlockItem(parent);
-            case Stmt -> new Stmt(parent);
             case LVal -> new LVal(parent);
             case Cond -> new Cond(parent);
+            case BlockStmt -> new BlockStmt(parent);
             case IfStmt -> new IfStmt(parent);
-            case TheForStmt -> new ForStmt(parent);
-            case ForStmt -> new ForStmtStmt(parent);
+            case TheForStmt -> new TheForStmt(parent);
+            case ForStmt -> new ForStmt(parent);
             case BreakStmt -> new BreakStmt(parent);
             case ContinueStmt -> new ContinueStmt(parent);
             case FormatString -> new FormatString(parent);
@@ -45,6 +45,7 @@ public class NodeBuilder {
             case LValAssignExpStmt -> new LValAssignExpStmt(parent);
             case LValAssignGetIntStmt -> new LValAssignGetIntStmt(parent);
             case ReturnStmt -> new ReturnStmt(parent);
+            case Stmt -> new Stmt(SyntaxNodeType.Stmt, parent);
 
             case LOrExp -> new LOrExp(parent);
             case PrimaryExp -> new PrimaryExp(parent);

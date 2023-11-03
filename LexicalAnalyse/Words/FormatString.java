@@ -10,7 +10,7 @@ public class FormatString extends Word {
     }
 
     static {
-        reg = "\"((%d)|(.*))?\"";
+        reg = "\"(.*?)?\"";
         pattern = Pattern.compile(reg);
     }
 

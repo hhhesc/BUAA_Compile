@@ -1,5 +1,10 @@
 package SyntaxAnalyse.SyntaxTree.Nodes.Exp;
 
+import IntermediatePresentation.BasicBlock;
+import IntermediatePresentation.IRManager;
+import IntermediatePresentation.Instruction.Icmp;
+import IntermediatePresentation.Instruction.Load;
+import IntermediatePresentation.Value;
 import SyntaxAnalyse.SyntaxTree.NodeBuilder;
 import SyntaxAnalyse.SyntaxTree.SyntaxNodeType;
 import SyntaxAnalyse.SyntaxTree.SyntaxTreeNode;
@@ -24,6 +29,15 @@ public class EqExp extends SyntaxTreeNode {
             adjustedChildren.add(children.get(size - 2));
             adjustedChildren.add(children.get(size - 1));
             children = adjustedChildren;
+        }
+    }
+
+    public Value toIR() {
+        if (children.size() == 1) {
+            return children.get(0).toIR();
+        } else {
+            return new Icmp(children.get(1).getFirstLeafString(), children.get(0).toIR(),
+                    children.get(2).toIR());
         }
     }
 }

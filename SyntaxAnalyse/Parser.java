@@ -1,6 +1,7 @@
 package SyntaxAnalyse;
 
-import CompileError.CompileException;
+import ErrorHandler.CompileError.CompileException;
+import ErrorHandler.ErrorManager;
 import LexicalAnalyse.Lexer;
 import LexicalAnalyse.Words.Ident;
 import LexicalAnalyse.Words.KeyWord;
@@ -77,15 +78,19 @@ public class Parser {
     protected void record() {
         lexer.record();
         syntaxTree.record();
+        ErrorManager.record();
     }
 
     protected void back() {
         lexer.back();
         syntaxTree.back();
+        ErrorManager.back();
     }
 
     protected void release() {
         syntaxTree.release();
+        lexer.release();
+        ErrorManager.release();
     }
 
     protected void ident() throws CompileException {
@@ -151,7 +156,14 @@ public class Parser {
         while (lexer.getSrc().equals("[")) {
             buildLeaf("[");
             exp();
-            buildLeaf("]");
+            try {
+                record();
+                buildLeaf("]");
+                release();
+            } catch (CompileException e) {
+                back();
+                ErrorManager.addError('k', lexer.getLastLineNumber());
+            }
         }
         buildDone();
     }
@@ -164,5 +176,9 @@ public class Parser {
 
     public String toString() {
         return syntaxTree.toString();
+    }
+
+    public SyntaxTree getSyntaxTree() {
+        return syntaxTree;
     }
 }

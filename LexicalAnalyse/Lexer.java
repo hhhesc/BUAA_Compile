@@ -20,6 +20,7 @@ public class Lexer {
         String line;
         WordAnalyser wordAnalyser = new WordAnalyser();
         boolean inAnnotation = false;
+        boolean inString = false;
         int lineNumber = 0;
         while ((line = br.readLine()) != null) {
             lineNumber++;
@@ -31,11 +32,17 @@ public class Lexer {
                         i++;
                     }
                 } else {
-                    if (line.charAt(i) == '/' && line.charAt(i + 1) == '/') {
+                    if (line.charAt(i) == '/' && line.charAt(i + 1) == '/' && !inString) {
                         break;
-                    } else if (line.charAt(i) == '/' && line.charAt(i + 1) == '*') {
+                    } else if (line.charAt(i) == '/' && line.charAt(i + 1) == '*' && !inString) {
                         inAnnotation = true;
                         i++;
+                    } else if (line.charAt(i) == '"') {
+                        inString = !inString;
+                        sb.append('"');
+                        if (i == line.length() - 2) {
+                            sb.append(line.charAt(i + 1));
+                        }
                     } else {
                         sb.append(line.charAt(i));
                         if (i == line.length() - 2) {
@@ -44,7 +51,8 @@ public class Lexer {
                     }
                 }
             }
-            if (line.length() == 1) {
+
+            if (line.length() == 1 && !inAnnotation) {
                 sb.append(line.charAt(0));
             }
             tokens.addAll(wordAnalyser.getTokens(sb.toString(), lineNumber));
@@ -87,6 +95,14 @@ public class Lexer {
         }
     }
 
+    public Integer getLastLineNumber() {
+        try {
+            return tokens.get(tokenIndex - 1).getLineNumber();
+        } catch (IndexOutOfBoundsException ignored) {
+            return null;
+        }
+    }
+
     public void next() {
         tokenIndex++;
     }
@@ -101,6 +117,10 @@ public class Lexer {
         } else {
             tokenIndex--;
         }
+    }
+
+    public void release() {
+        posStack.pop();
     }
 
     public String toString() {

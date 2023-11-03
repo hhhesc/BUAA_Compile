@@ -1,6 +1,8 @@
 package SyntaxAnalyse.SyntaxTree;
 
-import CompileError.CompileException;
+import IntermediatePresentation.IRManager;
+import IntermediatePresentation.Module;
+import IntermediatePresentation.Value;
 import LexicalAnalyse.Words.Word;
 
 import java.util.LinkedList;
@@ -49,6 +51,15 @@ public class SyntaxTree {
 
     public String toString() {
         return root.toString();
+    }
+
+    public void checkError() {
+        root.checkError();
+    }
+
+    public Module toIR() {
+        root.toIR();
+        return IRManager.getModule();
     }
 
 }

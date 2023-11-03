@@ -1,6 +1,7 @@
 package SyntaxAnalyse;
 
-import CompileError.CompileException;
+import ErrorHandler.CompileError.CompileException;
+import ErrorHandler.ErrorManager;
 import LexicalAnalyse.Lexer;
 import LexicalAnalyse.Words.IntConst;
 import SyntaxAnalyse.SyntaxTree.SyntaxNodeType;
@@ -41,7 +42,14 @@ public class ExpParser extends Parser {
         if (lexer.getSrc().equals("(")) {
             buildLeaf("(");
             exp();
-            buildLeaf(")");
+            try {
+                record();
+                buildLeaf(")");
+                release();
+            } catch (CompileException e) {
+                back();
+                ErrorManager.addError('j', lexer.getLastLineNumber());
+            }
         } else if (lexer.getToken().equals("INTCON")) {
             number();
         } else {
@@ -60,10 +68,21 @@ public class ExpParser extends Parser {
             } else {
                 ident();
                 buildLeaf("(");
-                if (!lexer.getSrc().equals(")")) {
+                try {
+                    record();
                     funcRParams();
+                    release();
+                } catch (CompileException e) {
+                    back();
                 }
-                buildLeaf(")");
+                try {
+                    record();
+                    buildLeaf(")");
+                    release();
+                } catch (CompileException e) {
+                    back();
+                    ErrorManager.addError('j', lexer.getLastLineNumber());
+                }
             }
             release();
         } catch (CompileException e) {

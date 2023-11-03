@@ -1,5 +1,14 @@
 package SyntaxAnalyse.SyntaxTree.Nodes.Exp;
 
+import IntermediatePresentation.BasicBlock;
+import IntermediatePresentation.ConstNumber;
+import IntermediatePresentation.IRManager;
+import IntermediatePresentation.Instruction.Br;
+import IntermediatePresentation.Instruction.Icmp;
+import IntermediatePresentation.Instruction.Load;
+import IntermediatePresentation.Instruction.ZextTo;
+import IntermediatePresentation.Value;
+import IntermediatePresentation.ValueType;
 import SyntaxAnalyse.SyntaxTree.NodeBuilder;
 import SyntaxAnalyse.SyntaxTree.SyntaxNodeType;
 import SyntaxAnalyse.SyntaxTree.SyntaxTreeNode;
@@ -25,5 +34,29 @@ public class LAndExp extends SyntaxTreeNode {
             adjustedChildren.add(children.get(size - 1));
             children = adjustedChildren;
         }
+    }
+
+    public void condToIR(BasicBlock ifTrue, BasicBlock ifFalse) {
+        Value cond;
+
+        if (children.size() == 3) {
+            BasicBlock curBB = IRManager.getInstance().getCurBlock();
+            BasicBlock trueThen = new BasicBlock();
+            IRManager.getInstance().setCurBlock(curBB);
+            ((LAndExp) children.get(0)).condToIR(trueThen, ifFalse);
+            //继续判断
+            IRManager.getInstance().setCurBlock(trueThen);
+            cond = children.get(2).toIR();
+        } else {
+            cond = children.get(0).toIR();
+        }
+        //前面都是真，表达式的值取决于这一个式子
+        if (cond.isPointer()) {
+            cond = new Load(IRManager.getInstance().declareTempVar(), cond);
+        }
+        if (cond.getType() != ValueType.I1) {
+            cond = new Icmp("!=", cond, new ConstNumber(0, ValueType.I1));
+        }
+        new Br(cond, ifTrue, ifFalse);
     }
 }

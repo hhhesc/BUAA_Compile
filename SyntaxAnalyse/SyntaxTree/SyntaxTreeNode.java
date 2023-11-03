@@ -1,5 +1,9 @@
 package SyntaxAnalyse.SyntaxTree;
 
+import ErrorHandler.SymbolTable.SymbolTableManager;
+import IntermediatePresentation.BasicBlock;
+import IntermediatePresentation.Instruction.Br;
+import IntermediatePresentation.Value;
 import LexicalAnalyse.Words.Word;
 
 import java.util.ArrayList;
@@ -10,6 +14,7 @@ public class SyntaxTreeNode {
     protected final Word token;
     protected ArrayList<SyntaxTreeNode> children;
     protected SyntaxTreeNode parent;
+    protected static SymbolTableManager symbolTableManager = SymbolTableManager.getInstance();
 
     protected LinkedList<Integer> childrenStack = new LinkedList<>();
     protected SyntaxNodeType type;
@@ -48,6 +53,10 @@ public class SyntaxTreeNode {
         childrenStack.push(children.size());
     }
 
+    public Word getWord() {
+        return token;
+    }
+
     public void back() {
         int childrenSize = childrenStack.pop();
         ArrayList<SyntaxTreeNode> newChildren = new ArrayList<>();
@@ -62,7 +71,7 @@ public class SyntaxTreeNode {
         childrenStack.pop();
     }
 
-    public void adjust(){
+    public void adjust() {
 
     }
 
@@ -84,6 +93,7 @@ public class SyntaxTreeNode {
         nodeShouldNotPrint.add(SyntaxNodeType.LValAssignExpStmt);
         nodeShouldNotPrint.add(SyntaxNodeType.Ident);
         nodeShouldNotPrint.add(SyntaxNodeType.FormatString);
+        nodeShouldNotPrint.add(SyntaxNodeType.BlockStmt);
     }
 
     public String toString() {
@@ -99,5 +109,43 @@ public class SyntaxTreeNode {
             }
         }
         return sb.toString();
+    }
+
+    public void checkError() {
+        for (SyntaxTreeNode child : children) {
+            child.checkError();
+        }
+    }
+
+    public Integer getDim() {
+        return null;
+    }
+
+    public Integer getFirstLeafLineNumber() {
+        if (isLeaf()) {
+            return token.getLineNumber();
+        } else {
+            return children.get(0).getFirstLeafLineNumber();
+        }
+    }
+
+    public String getFirstLeafString() {
+        if (isLeaf()) {
+            return token.getSrcStr();
+        } else {
+            return children.get(0).getFirstLeafString();
+        }
+    }
+
+    public Value toIR() {
+        for (SyntaxTreeNode node : children) {
+            node.toIR();
+        }
+        return null;
+    }
+
+    public void toIRThenBrTo(BasicBlock block) {
+        toIR();
+        new Br(block);
     }
 }
