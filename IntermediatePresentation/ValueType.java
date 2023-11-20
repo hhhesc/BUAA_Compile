@@ -10,7 +10,7 @@ public class ValueType {
     public static final ValueType ARRAY = new ValueType("array");
 
     private final String type;
-    private int len;
+    private int len = 1;
 
     public ValueType(String type) {
         this.type = type;
@@ -39,6 +39,10 @@ public class ValueType {
         } else {
             return "[ " + len + " x i32 ]";
         }
+    }
+
+    public int getLength() {
+        return len;
     }
 
     public String getRefTypeString() {

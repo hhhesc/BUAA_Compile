@@ -25,36 +25,27 @@ public class Lexer {
         while ((line = br.readLine()) != null) {
             lineNumber++;
             StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < line.length() - 1; i++) {
+            for (int i = 0; i < line.length(); i++) {
                 if (inAnnotation) {
-                    if (line.charAt(i) == '*' && line.charAt(i + 1) == '/') {
+                    if (line.charAt(i) == '*' && i != line.length() - 1 && line.charAt(i + 1) == '/') {
                         inAnnotation = false;
                         i++;
                     }
                 } else {
-                    if (line.charAt(i) == '/' && line.charAt(i + 1) == '/' && !inString) {
+                    if (line.charAt(i) == '/' && i != line.length() - 1 && line.charAt(i + 1) == '/' && !inString) {
                         break;
-                    } else if (line.charAt(i) == '/' && line.charAt(i + 1) == '*' && !inString) {
+                    } else if (line.charAt(i) == '/' && i != line.length() - 1 && line.charAt(i + 1) == '*' && !inString) {
                         inAnnotation = true;
                         i++;
                     } else if (line.charAt(i) == '"') {
                         inString = !inString;
                         sb.append('"');
-                        if (i == line.length() - 2) {
-                            sb.append(line.charAt(i + 1));
-                        }
                     } else {
                         sb.append(line.charAt(i));
-                        if (i == line.length() - 2) {
-                            sb.append(line.charAt(i + 1));
-                        }
                     }
                 }
             }
 
-            if (line.length() == 1 && !inAnnotation) {
-                sb.append(line.charAt(0));
-            }
             tokens.addAll(wordAnalyser.getTokens(sb.toString(), lineNumber));
             if (tokens.contains(new Word("Err", lineNumber))) {
                 return;

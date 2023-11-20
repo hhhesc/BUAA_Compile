@@ -39,7 +39,6 @@ public class LVal extends SyntaxTreeNode {
     }
 
     public Integer getVal() {
-        //TODO:这里要支持数组的i32取值
         Exp firstDim = null, secondDim = null;
         for (SyntaxTreeNode child : children) {
             if (child instanceof Exp && firstDim == null) {

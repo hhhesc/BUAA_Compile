@@ -43,7 +43,6 @@ public class LOrExp extends SyntaxTreeNode {
             IRManager.getInstance().setCurBlock(falseThen);
             ((LAndExp) children.get(2)).condToIR(ifTrue,ifFalse);
             //继续判断，为真直接跳过去
-
         } else {
             //前面都是假，表达式的值取决于这一个式子
             ((LAndExp) children.get(0)).condToIR(ifTrue, ifFalse);

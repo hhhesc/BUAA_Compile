@@ -6,27 +6,24 @@ import IntermediatePresentation.Instruction.Instruction;
 import java.util.LinkedList;
 
 public class IRManager {
-    private static IRManager INSTANCE = new IRManager();
-    private static Module MODULE = new Module();
-    private final String LocalVarPrefix = "%local_";
-    private final String GlobalVarPrefix = "@global_";
-    private final String TempVarPrefix = "%temp_";
-    private final String ParamPrefix = "%param_";
-    private final String BlockPrefix = "b";
+    private static final IRManager INSTANCE = new IRManager();
+    private static final Module MODULE = new Module();
 
 
     private int curLocalVarCounter = 0;
     private int curGlobalVarCounter = 0;
     private int tempVarCounter = 0;
-    private int blockCounter = -4;//四个库函数
+    private int blockCounter = -2;//库函数
     private int paramCounter = 0;
+
+    private int stringCounter = 0;
 
     private BasicBlock curBlock = null;
 
     private Function curFunction = null;
 
-    private LinkedList<BasicBlock> breakToStack = new LinkedList<>();
-    private LinkedList<BasicBlock> continueToStack = new LinkedList<>();
+    private final LinkedList<BasicBlock> breakToStack = new LinkedList<>();
+    private final LinkedList<BasicBlock> continueToStack = new LinkedList<>();
 
     public static IRManager getInstance() {
         return INSTANCE;
@@ -100,7 +97,7 @@ public class IRManager {
     }
 
     public void resetBlockCount() {
-        if (blockCounter != -4) {
+        if (blockCounter > 0) {
             blockCounter = 0;
         }
     }
@@ -110,30 +107,41 @@ public class IRManager {
         String reg;
         if (curBlock != null) {
             //说明还没有开始函数声明，现在要声明全局变量
-            reg = LocalVarPrefix + curLocalVarCounter;
+            String localVarPrefix = "%local_";
+            reg = localVarPrefix + curLocalVarCounter;
             curLocalVarCounter++;
         } else {
-            reg = GlobalVarPrefix + curGlobalVarCounter;
+            String globalVarPrefix = "@global_";
+            reg = globalVarPrefix + curGlobalVarCounter;
             curGlobalVarCounter++;
         }
         return reg;
     }
 
     public String declareTempVar() {
-        String reg = TempVarPrefix + tempVarCounter;
+        String tempVarPrefix = "%temp_";
+        String reg = tempVarPrefix + tempVarCounter;
         tempVarCounter++;
         return reg;
     }
 
     public String declareBlock() {
-        String bb = BlockPrefix + blockCounter;
+        String blockPrefix = "b";
+        String bb = blockPrefix + blockCounter;
         blockCounter++;
         return bb;
     }
 
     public String declareParam() {
-        String param = ParamPrefix + paramCounter;
+        String paramPrefix = "%param_";
+        String param = paramPrefix + paramCounter;
         paramCounter++;
         return param;
+    }
+
+    public String declareString() {
+        String str = "@str_" + stringCounter;
+        stringCounter++;
+        return str;
     }
 }

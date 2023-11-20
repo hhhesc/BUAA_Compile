@@ -2,6 +2,10 @@ package IntermediatePresentation.Instruction;
 
 import IntermediatePresentation.BasicBlock;
 import IntermediatePresentation.Value;
+import TargetCode.Instruction.Jump.Bne;
+import TargetCode.Instruction.Jump.J;
+import TargetCode.MipsManager;
+import TargetCode.RegisterManager;
 
 public class Br extends Instruction {
     private Value cond;
@@ -31,6 +35,18 @@ public class Br extends Instruction {
                     ", label %" + ifFalse.getReg() + "\n";
         } else {
             return "br label %" + dest.getReg() + "\n";
+        }
+    }
+
+    public void toMips() {
+        super.toMips();
+        if (dest == null) {
+            //br cond, label1, label2 -> bne label1,$zero,src | j label2
+            new Bne(ifTrue.getBbMipsLabel(), RegisterManager.zero,
+                    MipsManager.instance().getTempVarByRegister(cond,RegisterManager.k0));
+            new J(ifFalse.getBbMipsLabel());
+        } else {
+            new J(dest.getBbMipsLabel());
         }
     }
 }

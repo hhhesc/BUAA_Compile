@@ -2,10 +2,14 @@ package SyntaxAnalyse.SyntaxTree.Nodes.Stmt;
 
 import ErrorHandler.ErrorManager;
 import IntermediatePresentation.ConstNumber;
+import IntermediatePresentation.ConstString;
 import IntermediatePresentation.Function.Function;
 import IntermediatePresentation.IRManager;
 import IntermediatePresentation.Instruction.Call;
+import IntermediatePresentation.Instruction.GetElementPtr;
+import IntermediatePresentation.Instruction.Instruction;
 import IntermediatePresentation.Instruction.Load;
+import IntermediatePresentation.Instruction.Putstr;
 import IntermediatePresentation.Instruction.ZextTo;
 import IntermediatePresentation.Value;
 import IntermediatePresentation.ValueType;
@@ -40,12 +44,23 @@ public class PrintfStmt extends Stmt {
         String formatString = children.get(2).getFirstLeafString();
         char[] chars = formatString.toCharArray();
         int expIndex = 0;
+        StringBuilder sb = new StringBuilder();
+
         for (int i = 1; i < chars.length - 1; i++) {
             char c = chars[i];
             if (c == '%') {
+                if (!sb.isEmpty()) {
+                    ConstString str = new ConstString(sb.toString());
+                    int len = sb.length() + 1;
+                    new Putstr(str, len);
+                    sb = new StringBuilder();
+                }
                 i++;
                 while (expIndex < children.size() && !(children.get(expIndex) instanceof Exp)) {
                     expIndex++;
+                }
+                if (expIndex==children.size()) {
+                    break;
                 }
                 Value exp = children.get(expIndex).toIR();
                 if (exp.isPointer()) {
@@ -57,13 +72,16 @@ public class PrintfStmt extends Stmt {
                 new Call(Function.putint, exp);
                 expIndex++;
             } else if (c == '\\') {
+                sb.append("\n");
                 i++;
-                new Call(Function.putch, new ConstNumber('\n'));
             } else {
-                ConstNumber n = new ConstNumber(c);
-                new Call(Function.putch, n);
-
+                sb.append(c);
             }
+        }
+        if (!sb.isEmpty()) {
+            ConstString str = new ConstString(sb.toString());
+            int len = sb.length() + 1;
+            new Putstr(str, len);
         }
         return null;
     }

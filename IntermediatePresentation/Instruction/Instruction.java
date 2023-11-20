@@ -4,6 +4,7 @@ import IntermediatePresentation.IRManager;
 import IntermediatePresentation.User;
 import IntermediatePresentation.Value;
 import IntermediatePresentation.ValueType;
+import TargetCode.MipsManager;
 
 public class Instruction extends User {
     public Instruction(String regName, ValueType VType) {
@@ -17,10 +18,11 @@ public class Instruction extends User {
     }
 
     public String toString() {
-        return "\n";
+        return reg + "\n";
     }
 
     public Value turntoI32WhileBuilding(Value v) {
+        //丑陋的架构补丁
         Value val = v;
         if (val.isPointer()) {
             IRManager.getInstance().deleteInstruction();
@@ -33,5 +35,9 @@ public class Instruction extends User {
             IRManager.getInstance().instrCreated(this);
         }
         return val;
+    }
+
+    public void toMips() {
+        MipsManager.getFile().insertAnnotation(this.toString());
     }
 }

@@ -55,7 +55,7 @@ public class LAndExp extends SyntaxTreeNode {
             cond = new Load(IRManager.getInstance().declareTempVar(), cond);
         }
         if (cond.getType() != ValueType.I1) {
-            cond = new Icmp("!=", cond, new ConstNumber(0, ValueType.I1));
+            cond = new Icmp("!=", cond, new ConstNumber(0, cond.getType()));
         }
         new Br(cond, ifTrue, ifFalse);
     }

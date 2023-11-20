@@ -2,10 +2,11 @@ package IntermediatePresentation.Function;
 
 import IntermediatePresentation.BasicBlock;
 import IntermediatePresentation.IRManager;
-import IntermediatePresentation.Instruction.Ret;
 import IntermediatePresentation.User;
 import IntermediatePresentation.Value;
 import IntermediatePresentation.ValueType;
+import TargetCode.Label;
+import TargetCode.MipsManager;
 
 import java.util.ArrayList;
 
@@ -16,10 +17,6 @@ public class Function extends User {
     public static Function getint = new Function("@getint", new Param(), ValueType.I32);
     public static Function putint = new Function("@putint",
             new Param(new Value("i32", ValueType.I32)), ValueType.NULL);
-    public static Function putch = new Function("@putch",
-            new Param(new Value("i32", ValueType.I32)), ValueType.NULL);
-    public static Function putstr = new Function("@putstr",
-            new Param(new Value("i8*", ValueType.PI8)), ValueType.NULL);
 
     public Function(String name, Param param, ValueType type) {
         super(name, type);
@@ -70,5 +67,16 @@ public class Function extends User {
         }
         sb.append("}\n\n");
         return sb.toString();
+    }
+
+    public void toMips() {
+        super.toMips();
+        Label label = new Label("function_" + reg.substring(1));
+        MipsManager.instance().insertLabel(label);
+        MipsManager.instance().tagFunctionWithLabel(this, label);
+        param.toMips();
+        for (BasicBlock bb : bbs) {
+            bb.toMips();
+        }
     }
 }

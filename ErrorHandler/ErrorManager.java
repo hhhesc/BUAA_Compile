@@ -17,7 +17,9 @@ public class ErrorManager {
     private static final LinkedList<HashMap<Integer, Character>> errorListStack = new LinkedList<>();
 
     public static void addError(char typeCode, int lineNumber) {
-        errorList.put(lineNumber, typeCode);
+        if (!errorList.containsKey(lineNumber)) {
+            errorList.put(lineNumber, typeCode);
+        }
     }
 
     public static void log() throws IOException {
@@ -46,5 +48,9 @@ public class ErrorManager {
 
     public static void back() {
         errorList = errorListStack.pop();
+    }
+
+    public static boolean noError() {
+        return errorList.isEmpty();
     }
 }

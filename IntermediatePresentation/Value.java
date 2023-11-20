@@ -47,4 +47,11 @@ public class Value {
         return vType.toString();
     }
 
+    public void toMips() {
+    }
+
+    public String getName() {
+        return reg.substring(1);
+    }
+
 }
