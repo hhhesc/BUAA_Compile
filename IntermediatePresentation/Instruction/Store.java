@@ -55,6 +55,7 @@ public class Store extends Instruction {
         } else {
             //算出来的地址
             MipsManager.instance().getTempVarByRegister(addr, RegisterManager.k1);
+            //TODO:这里一定是k1吗??
             new Sw(src, 0, RegisterManager.k1);
         }
     }

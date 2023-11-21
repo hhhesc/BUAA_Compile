@@ -38,6 +38,7 @@ public class Ret extends Instruction {
                 new Li(v0, n.getVal());
             } else {
                 MipsManager.instance().getTempVarByRegister(retValue, RegisterManager.v0);
+                //TODO:这里一定会放到v0里？？
             }
         }
         new Jr();

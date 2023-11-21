@@ -32,6 +32,7 @@ public class Load extends Instruction {
         }
 
         if (addr instanceof LocalDecl || addr instanceof GlobalDecl) {
+            //TODO:前四个函数参数会被load吗
             MipsManager.instance().putDeclaredVarIntoRegister(addr, mipsRegister);
         } else {
             //addr就是一个实际的内存地址，其值是一个临时变量

@@ -18,6 +18,7 @@ import SyntaxAnalyse.SyntaxTree.SyntaxTreeNode;
 
 import java.util.ArrayList;
 
+// ConstDef → Ident { '[' ConstExp ']' } '=' ConstInitVal
 public class ConstDef extends SyntaxTreeNode {
     private Word ident;
     private int dim;
@@ -27,6 +28,21 @@ public class ConstDef extends SyntaxTreeNode {
     }
 
     public void checkError() {
+        int firstDim = 0;
+        int secondDim = 0;
+        ConstInitVal initVal = null;
+
+        for (SyntaxTreeNode child : children) {
+            if (child instanceof ConstExp && firstDim == 0) {
+                firstDim = ((ConstExp) child).getVal();
+            } else if (child instanceof ConstExp && secondDim == 0) {
+                secondDim = ((ConstExp) child).getVal();
+            } else if (child instanceof ConstInitVal) {
+                initVal = ((ConstInitVal) child);
+            }
+        }
+        assert initVal != null;
+
         ident = ((Ident) children.get(0)).getIdent();
         ArrayList<Integer> lens = new ArrayList<>();
         int cnt = 0;
@@ -41,6 +57,7 @@ public class ConstDef extends SyntaxTreeNode {
 
         if (symbolTableManager.notDeclaredInCurLevel(ident.getSrcStr())) {
             symbolTableManager.varDecl(ident.getSrcStr(), true, dim, lens);
+            symbolTableManager.setVal(ident.getSrcStr(), initVal.getVal());
         } else {
             ErrorManager.addError('b', ident.getLineNumber());
         }
@@ -107,7 +124,7 @@ public class ConstDef extends SyntaxTreeNode {
             if (IRManager.getInstance().inGlobalDecl()) {
                 ArrayInitializer arrayInitializer = (ArrayInitializer) initVal.toIR();
                 GlobalDecl globalDecl = new GlobalDecl(arrayInitializer);
-                symbolTableManager.arrayInit(ident,arrayInitializer);
+                symbolTableManager.arrayInit(ident, arrayInitializer);
                 symbolTableManager.setIRValue(ident, globalDecl);
             } else {
                 LocalDecl localDecl = new LocalDecl(firstDim);
@@ -126,7 +143,7 @@ public class ConstDef extends SyntaxTreeNode {
             if (IRManager.getInstance().inGlobalDecl()) {
                 ArrayInitializer arrayInitializer = (ArrayInitializer) initVal.toIR();
                 GlobalDecl globalDecl = new GlobalDecl(arrayInitializer);
-                symbolTableManager.arrayInit(ident,arrayInitializer);
+                symbolTableManager.arrayInit(ident, arrayInitializer);
                 symbolTableManager.setIRValue(ident, globalDecl);
             } else {
                 LocalDecl localDecl = new LocalDecl(firstDim * secondDim);

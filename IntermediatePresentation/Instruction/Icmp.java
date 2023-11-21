@@ -63,7 +63,6 @@ public class Icmp extends Instruction {
         Value oprand1 = operandList.get(0);
         Value oprand2 = operandList.get(1);
         if (oprand1 instanceof ConstNumber n1 && oprand2 instanceof ConstNumber n2) {
-            //这里也不应该是等号吧
             int val1 = n1.getVal();
             int val2 = n2.getVal();
             boolean res = switch (op) {

@@ -63,7 +63,7 @@ public class GetElementPtr extends Instruction {
                 new La(RegisterManager.k0, MipsManager.instance().getGlobalData(ptr));
                 new Addi(mipsRegister, RegisterManager.k0, n.getVal() * 4);
             } else {
-                //offset = -4*k0
+                //offset = 4*k0
                 MipsManager.instance().getTempVarByRegister(elemIndex, RegisterManager.k0);
                 new Li(RegisterManager.k1, 4);
                 new Mult(RegisterManager.k0, RegisterManager.k1);
@@ -82,6 +82,7 @@ public class GetElementPtr extends Instruction {
                 new Li(RegisterManager.k1, 4);
                 new Mult(RegisterManager.k0, RegisterManager.k1);
                 new Mflo(RegisterManager.k0);
+                //TODO:换成sll
                 new Add(RegisterManager.k0, RegisterManager.sp, RegisterManager.k0);
 
                 new Addi(mipsRegister, RegisterManager.k0, MipsManager.instance().getLocalVarAddr(ptr));
@@ -104,11 +105,6 @@ public class GetElementPtr extends Instruction {
                 new Add(mipsRegister, RegisterManager.k0, ptrRegister);
             }
         }
-
-        /*
-            数组是从高地址开始放的：
-            addr A[0] addr-4 A[1] addr-8 A[2]...
-         */
 
         if (noRegAllocated) {
             MipsManager.instance().pushTempVar(this, mipsRegister);

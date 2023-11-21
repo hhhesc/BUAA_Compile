@@ -24,7 +24,9 @@ public class StmtParser extends Parser {
             back();
             try {
                 record();
+                buildIntermediateNode(SyntaxNodeType.Stmt);
                 exp();
+                buildDone();
                 try {
                     record();
                     buildLeaf(";");
@@ -39,9 +41,9 @@ public class StmtParser extends Parser {
                 String next = lexer.getSrc();
                 switch (next) {
                     case ";" -> {
-//                        buildIntermediateNode(SyntaxNodeType.Stmt);
+                        buildIntermediateNode(SyntaxNodeType.Stmt);
                         buildLeaf(";");
-//                        buildDone();
+                        buildDone();
                     }
                     case "{" -> blockStmt();
                     case "if" -> ifStmt();

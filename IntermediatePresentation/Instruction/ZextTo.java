@@ -19,7 +19,14 @@ public class ZextTo extends Instruction {
     }
 
     public void toMips() {
-        //直接让他们指向同一个地址
-        MipsManager.instance().pointToSameMemory(operandList.get(0), this);
+        //TODO:什么时候会用到zext??
+        Value v = operandList.get(0);
+        Register vReg = RegisterManager.instance().getRegOf(v);
+        if (vReg != null) {
+            RegisterManager.instance().setRegOf(this, vReg);
+        } else {
+            //直接让他们指向同一个地址
+            MipsManager.instance().pointToSameMemory(operandList.get(0), this);
+        }
     }
 }

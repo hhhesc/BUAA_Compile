@@ -94,7 +94,7 @@ public class MipsManager {
 
     public void pushValue(Value v) {
         valueToStackOffset.put(v, stackPointer);
-        stackPointer-=4;
+        stackPointer -= 4;
     }
 
     public void pointToSameMemory(Value src, Value tar) {
@@ -140,7 +140,11 @@ public class MipsManager {
     }
 
     public void resetSp() {
-        stackPointer = spOffsetStack.pop();
-        new Addi(RegisterManager.sp, RegisterManager.sp, -stackPointer);
+        if (spOffsetStack.size() > 0) {
+            stackPointer = spOffsetStack.pop();
+            new Addi(RegisterManager.sp, RegisterManager.sp, -stackPointer);
+        } else {
+            stackPointer = 0;
+        }
     }
 }

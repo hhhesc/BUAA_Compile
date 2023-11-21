@@ -9,8 +9,4 @@ public class Stmt extends SyntaxTreeNode {
     public Stmt(SyntaxNodeType type,SyntaxTreeNode parent) {
         super(type, parent);
     }
-
-    public Value toIR(){
-        return new BasicBlock();
-    }
 }

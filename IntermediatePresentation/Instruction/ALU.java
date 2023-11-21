@@ -117,6 +117,7 @@ public class ALU extends Instruction {
                 } else {
                     MipsManager.instance().getTempVarByRegister(oprand2, RegisterManager.k1);
                 }
+                //TODO:这里可以常数优化
 
                 switch (instr) {
                     case "mul" -> {

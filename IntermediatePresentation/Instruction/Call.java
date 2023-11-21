@@ -88,7 +88,7 @@ public class Call extends Instruction {
             new Li(RegisterManager.v0, 5);
             Register dest = RegisterManager.instance().getRegOf(this);
             boolean noRegAllocated = dest == null;
-            if (dest == null) {
+            if (noRegAllocated) {
                 dest = RegisterManager.t0;
             }
             new Syscall();

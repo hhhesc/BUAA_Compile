@@ -78,5 +78,7 @@ public class Function extends User {
         for (BasicBlock bb : bbs) {
             bb.toMips();
         }
+        //清空栈指针
+        MipsManager.instance().resetSp();
     }
 }
