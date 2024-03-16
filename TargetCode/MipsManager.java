@@ -5,8 +5,10 @@ import IntermediatePresentation.Instruction.GlobalDecl;
 import IntermediatePresentation.Value;
 import TargetCode.Instruction.ALU.Addi;
 import TargetCode.Instruction.La;
+import TargetCode.Instruction.Li;
 import TargetCode.Instruction.Memory.Lw;
 import TargetCode.Instruction.Memory.Sw;
+import TargetCode.Instruction.Move;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -32,6 +34,16 @@ public class MipsManager {
     private MipsManager() {
     }
 
+    private boolean autoInsert = true;
+
+    public void setAutoInsert(boolean auto) {
+        this.autoInsert = auto;
+    }
+
+    public boolean autoInsert() {
+        return autoInsert;
+    }
+
     public static MipsManager instance() {
         return INSTANCE;
     }
@@ -52,9 +64,11 @@ public class MipsManager {
         /*
             这里是为了和全局变量的存放方向一致，即第k个元素的位置是sp + offset * 4 * (k-1)
          */
-        stackPointer -= 4 * (len - 1);
-        valueToStackOffset.put(v, stackPointer);
-        stackPointer -= 4;
+        if (!valueToStackOffset.containsKey(v)) {
+            stackPointer -= 4 * (len - 1);
+            valueToStackOffset.put(v, stackPointer);
+            stackPointer -= 4;
+        }
     }
 
     public int getLocalVarAddr(Value v) {
@@ -68,12 +82,12 @@ public class MipsManager {
     }
 
     public Register getTempVarByRegister(Value v, Register defaultReg) {
-        //将临时变量以寄存器的形式传递并销毁，该寄存器用完即销毁
         Register register = RegisterManager.instance().getRegOf(v);
         if (register == null) {
             //如果没有分配寄存器，就用默认的defaultReg
             register = defaultReg;
-            //临时变量一定已经存储在了堆栈里
+            //在Instruction.toMips中已经为所有未定义的变量分配了栈空间
+
             int offset = valueToStackOffset.get(v);
             new Lw(register, offset, RegisterManager.sp);
             //似乎没办法释放内存碎片...
@@ -81,20 +95,76 @@ public class MipsManager {
         return register;
     }
 
+    public void putTempVarIntoRegister(Value v, Register tar) {
+        Register register = RegisterManager.instance().getRegOf(v);
+        if (register == null) {
+            register = tar;
+            int offset = valueToStackOffset.get(v);
+            new Lw(register, offset, RegisterManager.sp);
+        } else {
+            new Move(tar, register);
+        }
+    }
+
     public void putDeclaredVarIntoRegister(Value v, Register register) {
         //存储到对应寄存器中
         if (v instanceof GlobalDecl) {
-            new La(RegisterManager.k0, getGlobalData(v));
-            new Lw(register, 0, RegisterManager.k0);
+            new Lw(register, getGlobalData(v), RegisterManager.zero);
         } else {
             //临时变量或第五个及以上的参数
             new Lw(register, getLocalVarAddr(v), RegisterManager.sp);
         }
     }
 
+    public void putDeclaredVarIntoRegisterWithOffset(Value v, Register register, int offset) {
+        //存储到对应寄存器中
+        if (v instanceof GlobalDecl) {
+            if (offset != 0) {
+                new Li(RegisterManager.k0, offset);
+                new Lw(register, getGlobalData(v), RegisterManager.k0);
+            } else {
+                new Lw(register, getGlobalData(v), RegisterManager.zero);
+            }
+        } else {
+            //临时变量或第五个及以上的参数
+            new Lw(register, getLocalVarAddr(v) + offset, RegisterManager.sp);
+        }
+    }
+
     public void pushValue(Value v) {
         valueToStackOffset.put(v, stackPointer);
         stackPointer -= 4;
+    }
+
+    public void push(Register register) {
+        new Sw(register, stackPointer, RegisterManager.sp);
+        stackPointer -= 4;
+    }
+
+    public void popTo(Register dest) {
+        stackPointer += 4;
+        new Lw(dest, stackPointer, RegisterManager.sp);
+    }
+
+    public void saveSp() {
+        //$sp的正常值就是栈顶，返回值也是
+        //参数本来就是下面栈中的一部分，因此要为其预留位置
+        spOffsetStack.push(stackPointer);
+        new Addi(RegisterManager.sp, RegisterManager.sp, stackPointer);
+        stackPointer = 0;
+    }
+
+    public void resetSp() {
+        if (spOffsetStack.size() > 0) {
+            stackPointer = spOffsetStack.pop();
+            new Addi(RegisterManager.sp, RegisterManager.sp, -stackPointer);
+        } else {
+            stackPointer = 0;
+        }
+    }
+
+    public boolean notInStack(Value v) {
+        return !valueToStackOffset.containsKey(v);
     }
 
     public void pointToSameMemory(Value src, Value tar) {
@@ -117,34 +187,7 @@ public class MipsManager {
         FILE.insertLabel(label);
     }
 
-    public void push(Register register) {
-        new Sw(register, stackPointer, RegisterManager.sp);
-        stackPointer -= 4;
-    }
-
-    public void allocEmptyStackSpace() {
-        stackPointer -= 4;
-    }
-
-    public void popTo(Register dest) {
-        stackPointer += 4;
-        new Lw(dest, stackPointer, RegisterManager.sp);
-    }
-
-    public void saveSp(int paramNumbers) {
-        //$sp的正常值就是栈顶，返回值也是
-        //参数本来就是下面栈中的一部分，因此要为其预留位置
-        spOffsetStack.push(stackPointer + 4 * paramNumbers);
-        new Addi(RegisterManager.sp, RegisterManager.sp, stackPointer + 4 * paramNumbers);
-        stackPointer = 0;
-    }
-
-    public void resetSp() {
-        if (spOffsetStack.size() > 0) {
-            stackPointer = spOffsetStack.pop();
-            new Addi(RegisterManager.sp, RegisterManager.sp, -stackPointer);
-        } else {
-            stackPointer = 0;
-        }
+    public int getStackPointer() {
+        return stackPointer;
     }
 }

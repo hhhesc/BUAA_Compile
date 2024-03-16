@@ -1,8 +1,13 @@
 package IntermediatePresentation.Instruction;
 
+import IntermediatePresentation.ConstNumber;
 import IntermediatePresentation.IRManager;
 import IntermediatePresentation.Value;
 import IntermediatePresentation.ValueType;
+import TargetCode.Instruction.Li;
+import TargetCode.Instruction.Memory.Lw;
+import TargetCode.Instruction.Memory.Sw;
+import TargetCode.Instruction.Move;
 import TargetCode.MipsManager;
 import TargetCode.Register;
 import TargetCode.RegisterManager;
@@ -19,14 +24,23 @@ public class ZextTo extends Instruction {
     }
 
     public void toMips() {
-        //TODO:什么时候会用到zext??
+        super.toMips();
         Value v = operandList.get(0);
         Register vReg = RegisterManager.instance().getRegOf(v);
-        if (vReg != null) {
-            RegisterManager.instance().setRegOf(this, vReg);
+        Register register = RegisterManager.instance().getRegOf(this);
+
+        if (register != null) {
+            if (v instanceof ConstNumber n) {
+                new Li(register, n.getVal());
+            } else {
+                MipsManager.instance().putTempVarIntoRegister(v, register);
+            }
         } else {
-            //直接让他们指向同一个地址
-            MipsManager.instance().pointToSameMemory(operandList.get(0), this);
+            if (vReg != null) {
+                MipsManager.instance().pushTempVar(this, vReg);
+            } else {
+                MipsManager.instance().pointToSameMemory(v, this);
+            }
         }
     }
 }

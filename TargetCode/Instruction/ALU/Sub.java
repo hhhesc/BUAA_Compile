@@ -3,6 +3,8 @@ package TargetCode.Instruction.ALU;
 import TargetCode.Instruction.MipsInstr;
 import TargetCode.Register;
 
+import java.util.ArrayList;
+
 public class Sub extends MipsInstr {
     private final Register dest;
     private final Register oprand1;
@@ -16,6 +18,17 @@ public class Sub extends MipsInstr {
     }
 
     public String toString() {
-        return "sub " + dest + ", " + oprand1 + ", " + oprand2 + "\n";
+        return "subu " + dest + ", " + oprand1 + ", " + oprand2 + "\n";
+    }
+
+    public Register putToRegister() {
+        return dest;
+    }
+
+    public ArrayList<Register> operandRegs(){
+        ArrayList<Register> ret = new ArrayList<>();
+        ret.add(oprand1);
+        ret.add(oprand2);
+        return ret;
     }
 }

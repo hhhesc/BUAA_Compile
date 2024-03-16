@@ -46,16 +46,17 @@ public class Param extends Value {
         //处理形参，这里不在call中处理，因为那里是实参
         int paramNumber = params.size();
 
-        for (int i = 0; i < 4; i++) {
+        ArrayList<Value> params = getParams();
+        for (int i = 0; i < 3; i++) {
             if (i == paramNumber) {
                 break;
             }
             RegisterManager.instance().setRegOf(params.get(i), RegisterManager.instance().getParamRegister(i));
-            MipsManager.instance().allocEmptyStackSpace();
+            MipsManager.instance().pushValue(params.get(i));
         }
 
-        if (paramNumber >= 5) {
-            for (int i = 4; i < paramNumber; i++) {
+        if (paramNumber >= 4) {
+            for (int i = 3; i < paramNumber; i++) {
                 MipsManager.instance().pushValue(params.get(i));
             }
         }

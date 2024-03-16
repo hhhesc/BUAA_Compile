@@ -1,5 +1,7 @@
 package IntermediatePresentation.Array;
 
+import IntermediatePresentation.BasicBlock;
+import IntermediatePresentation.IRManager;
 import IntermediatePresentation.User;
 import IntermediatePresentation.Value;
 import IntermediatePresentation.ValueType;
@@ -11,6 +13,7 @@ public class ArrayInitializer extends User {
     private boolean isZeroInit = false;
 
     private int length;
+    private BasicBlock block;
 
     public ArrayInitializer(ArrayList<Value> initVals) {
         super("ARRAY_INIT", ValueType.NULL);
@@ -19,6 +22,7 @@ public class ArrayInitializer extends User {
             use(v);
         }
         length = initVals.size();
+        block = IRManager.getInstance().getCurBlock();
     }
 
     public ArrayInitializer(int len) {
@@ -60,5 +64,9 @@ public class ArrayInitializer extends User {
             sb.append(" ]");
             return sb.toString();
         }
+    }
+
+    public BasicBlock getBlock() {
+        return block;
     }
 }

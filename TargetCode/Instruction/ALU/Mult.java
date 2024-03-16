@@ -3,6 +3,8 @@ package TargetCode.Instruction.ALU;
 import TargetCode.Instruction.MipsInstr;
 import TargetCode.Register;
 
+import java.util.ArrayList;
+
 public class Mult extends MipsInstr {
     private final Register oprand1;
     private final Register oprand2;
@@ -15,5 +17,12 @@ public class Mult extends MipsInstr {
 
     public String toString() {
         return "mult " + oprand1 + ", " + oprand2 + "\n";
+    }
+
+    public ArrayList<Register> operandRegs(){
+        ArrayList<Register> ret = new ArrayList<>();
+        ret.add(oprand1);
+        ret.add(oprand2);
+        return ret;
     }
 }

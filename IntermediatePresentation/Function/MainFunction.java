@@ -2,11 +2,17 @@ package IntermediatePresentation.Function;
 
 import IntermediatePresentation.BasicBlock;
 import IntermediatePresentation.IRManager;
+import IntermediatePresentation.Instruction.Instruction;
+import IntermediatePresentation.Instruction.LocalDecl;
+import IntermediatePresentation.Instruction.MoveIR;
 import IntermediatePresentation.ValueType;
-import TargetCode.Instruction.Jump.J;
-import TargetCode.Instruction.Jump.Jal;
+import Optimizer.Optimizer;
 import TargetCode.Label;
 import TargetCode.MipsManager;
+import TargetCode.RegisterManager;
+
+import java.util.ArrayList;
+import java.util.Comparator;
 
 public class MainFunction extends Function {
     public MainFunction() {
@@ -15,13 +21,28 @@ public class MainFunction extends Function {
     }
 
     public void toMips() {
+        RegisterManager.instance().setCurFunction(this);
         Label mainLabel = new Label("main");
-        Label end = new Label("end");
 
         MipsManager.instance().insertLabel(mainLabel);
+
         for (BasicBlock bb : bbs) {
-            bb.toMips();
+            for (Instruction instruction : bb.getInstructionList()) {
+                if (instruction instanceof MoveIR moveIR) {
+                    if (MipsManager.instance().notInStack(moveIR.getOriginPhi())) {
+                        MipsManager.instance().allocInStackBy(moveIR.getOriginPhi(), 1);
+                    }
+                }
+            }
         }
-        MipsManager.instance().insertLabel(end);
+        if (Optimizer.instance().hasOptimized()) {
+            for (BasicBlock bb : Optimizer.instance().bfsDominTreeArray(getEntranceBlock())) {
+                bb.toMips();
+            }
+        } else {
+            for (BasicBlock bb : getBlocks()) {
+                bb.toMips();
+            }
+        }
     }
 }

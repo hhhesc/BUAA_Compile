@@ -1,9 +1,11 @@
 package IntermediatePresentation;
 
-import java.util.HashMap;
+import IntermediatePresentation.Instruction.Phi;
+
+import java.util.ArrayList;
 
 public class Value {
-    protected HashMap<String, Value> userList = new HashMap<>();
+    protected ArrayList<User> userList = new ArrayList<>();
     protected ValueType vType;
 
     protected String reg;
@@ -13,8 +15,8 @@ public class Value {
         this.vType = vType;
     }
 
-    public void usedBy(Value value) {
-        userList.put(value.getReg(), value);
+    public void usedBy(User value) {
+        userList.add(value);
     }
 
     public String getReg() {
@@ -54,4 +56,28 @@ public class Value {
         return reg.substring(1);
     }
 
+    public ArrayList<User> getUserList() {
+        return new ArrayList<>(userList);
+    }
+
+    public void removeUser(User user) {
+        userList.remove(user);
+    }
+
+    public void beReplacedBy(Value v) {
+        for (User user : userList) {
+            ArrayList<Value> newOperandList = new ArrayList<>(user.operandList);
+            for (int i = 0; i < user.operandList.size(); i++) {
+                if (user.operandList.get(i).equals(this)) {
+                    newOperandList.set(i, v);
+                }
+            }
+            user.operandList = newOperandList;
+            v.usedBy(user);
+        }
+    }
+
+    public boolean isUseless() {
+        return userList.size() == 0;
+    }
 }

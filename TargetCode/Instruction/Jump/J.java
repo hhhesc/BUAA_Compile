@@ -14,4 +14,8 @@ public class J extends MipsInstr {
     public String toString() {
         return "j " + label.getIdent() + "\n";
     }
+
+    public Label getLabel() {
+        return label;
+    }
 }

@@ -14,4 +14,8 @@ public class Mfhi extends MipsInstr {
     public String toString() {
         return "mfhi " + dest+"\n";
     }
+
+    public Register putToRegister(){
+        return dest;
+    }
 }

@@ -5,6 +5,8 @@ import TargetCode.MipsStmt;
 import TargetCode.Register;
 import TargetCode.RegisterManager;
 
+import java.util.ArrayList;
+
 public class Addi extends MipsInstr {
     private final Register dest;
     private final Register src;
@@ -18,6 +20,28 @@ public class Addi extends MipsInstr {
     }
 
     public String toString() {
-        return "addi " + dest + ", " + src + ", " + imm + "\n";
+        return "addiu " + dest + ", " + src + ", " + imm + "\n";
+    }
+
+    public Register getSrc() {
+        return src;
+    }
+
+    public Register getDest() {
+        return dest;
+    }
+
+    public int getImm() {
+        return imm;
+    }
+
+    public Register putToRegister() {
+        return dest;
+    }
+
+    public ArrayList<Register> operandRegs(){
+        ArrayList<Register> ret = new ArrayList<>();
+        ret.add(src);
+        return ret;
     }
 }

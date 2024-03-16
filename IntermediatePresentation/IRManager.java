@@ -2,13 +2,14 @@ package IntermediatePresentation;
 
 import IntermediatePresentation.Function.Function;
 import IntermediatePresentation.Instruction.Instruction;
+import Optimizer.Optimizer;
 
 import java.util.LinkedList;
 
 public class IRManager {
+    private boolean autoInsert = true;
     private static final IRManager INSTANCE = new IRManager();
     private static final Module MODULE = new Module();
-
 
     private int curLocalVarCounter = 0;
     private int curGlobalVarCounter = 0;
@@ -36,6 +37,10 @@ public class IRManager {
         return MODULE;
     }
 
+    public void setAutoInsert(boolean autoInsert) {
+        this.autoInsert = autoInsert;
+    }
+
     public void setCurBlock(BasicBlock curBlock) {
         this.curBlock = curBlock;
     }
@@ -53,11 +58,13 @@ public class IRManager {
     }
 
     public void addBBToCurFunction(BasicBlock bb) {
-        curFunction.addBlock(bb);
+        if (autoInsert) {
+            curFunction.addBlock(bb);
+        }
     }
 
     public void instrCreated(Instruction instruction) {
-        if (curBlock != null) {
+        if (curBlock != null && autoInsert) {
             curBlock.addInstruction(instruction);
         }
     }
@@ -118,6 +125,13 @@ public class IRManager {
         return reg;
     }
 
+    public String declareLocalVar() {
+        String localVarPrefix = "%local_";
+        String reg = localVarPrefix + curLocalVarCounter;
+        curLocalVarCounter++;
+        return reg;
+    }
+
     public String declareTempVar() {
         String tempVarPrefix = "%temp_";
         String reg = tempVarPrefix + tempVarCounter;
@@ -127,6 +141,9 @@ public class IRManager {
 
     public String declareBlock() {
         String blockPrefix = "b";
+        if (!autoInsert) {
+            blockPrefix = "midB";
+        }
         String bb = blockPrefix + blockCounter;
         blockCounter++;
         return bb;

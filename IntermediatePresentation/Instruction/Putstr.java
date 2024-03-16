@@ -19,6 +19,14 @@ public class Putstr extends Instruction {
     }
     //丑陋的补丁
 
+    public ConstString getString() {
+        return string;
+    }
+
+    public int getLen() {
+        return len;
+    }
+
     public String toString() {
         return "call void @putstr(i8* getelementptr inbounds ([ " + len + " x i8 ], [ " +
                 len + " x i8 ]* " + string.getReg() + ", i64 0, i64 0))\n";
@@ -26,10 +34,16 @@ public class Putstr extends Instruction {
 
     public void toMips() {
         super.toMips();
-        MipsManager.instance().push(RegisterManager.a0);
         new La(RegisterManager.a0, MipsManager.instance().getGlobalData(string));
         new Li(RegisterManager.v0, 4);
         new Syscall();
-        MipsManager.instance().popTo(RegisterManager.a0);
+    }
+
+    public boolean isUseless() {
+        return false;
+    }
+
+    public boolean isDefInstr() {
+        return false;
     }
 }

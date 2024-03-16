@@ -1,8 +1,9 @@
 *.zip
 .idea
-out
+/out
 *.jar
 *.bat
 *.txt
 *.c
 *.h
+.gitignore

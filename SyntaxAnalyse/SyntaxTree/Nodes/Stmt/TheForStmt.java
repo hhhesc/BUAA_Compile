@@ -20,6 +20,7 @@ public class TheForStmt extends Stmt {
     }
 
     public Value toIR() {
+        symbolTableManager.enterCycle();
         ForStmt init = null, incr = null;
         Cond cond = null;
         Stmt stmt = null;
@@ -46,7 +47,9 @@ public class TheForStmt extends Stmt {
 
         BasicBlock curBlock = IRManager.getInstance().getCurBlock();
         BasicBlock condBlock = new BasicBlock();
+        //follow不是循环内部的块
         BasicBlock followBlock = new BasicBlock();
+        followBlock.setLoopDepth(followBlock.getLoopDepth() - 1);
         BasicBlock stmtBlock = new BasicBlock();
 
         symbolTableManager.enterBlock();
@@ -74,19 +77,29 @@ public class TheForStmt extends Stmt {
             }
 
             IRManager.getInstance().setCurBlock(incrBlock);
-            incr.toIRThenBrTo(condBlock);
+            incr.toIR();
+            if (cond != null) {
+                cond.condToIR(stmtBlock, followBlock);
+            } else {
+                new Br(stmtBlock);
+            }
         } else {
             IRManager.getInstance().addContinueTo(condBlock);
             IRManager.getInstance().setCurBlock(stmtBlock);
             if (stmt != null) {
-                stmt.toIRThenBrTo(condBlock);
+                stmt.toIR();
+            }
+
+            if (cond != null) {
+                cond.condToIR(stmtBlock, followBlock);
             } else {
-                new Br(condBlock);
+                new Br(stmtBlock);
             }
         }
 
         IRManager.getInstance().setCurBlock(followBlock);
         symbolTableManager.exitBlock();
+        symbolTableManager.exitCycle();
         return null;
     }
 }

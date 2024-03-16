@@ -6,6 +6,7 @@ import IntermediatePresentation.Function.Function;
 import IntermediatePresentation.IRManager;
 import IntermediatePresentation.Instruction.GlobalDecl;
 import IntermediatePresentation.Value;
+import Optimizer.Optimizer;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -56,6 +57,14 @@ public class SymbolTableManager {
 
     public boolean notInCycle() {
         return cycleLevel == 0;
+    }
+
+    public int getCycleLevel() {
+        if (Optimizer.instance().hasOptimized()) {
+            return Integer.MAX_VALUE;
+        } else {
+            return cycleLevel;
+        }
     }
 
     public boolean notDeclaredInCurLevel(String ident) {

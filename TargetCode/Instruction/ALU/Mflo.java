@@ -14,4 +14,8 @@ public class Mflo extends MipsInstr {
     public String toString() {
         return "mflo " + dest + "\n";
     }
+
+    public Register putToRegister() {
+        return dest;
+    }
 }

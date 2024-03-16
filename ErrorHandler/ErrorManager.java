@@ -33,7 +33,7 @@ public class ErrorManager {
             sb.append(line).append(" ").append(errorList.get(line)).append("\n");
         }
 
-        bw.write(sb.substring(0, Math.max(sb.length() - 1, 0)));
+        bw.write(sb.toString());
         bw.flush();
         bw.close();
     }
@@ -50,7 +50,7 @@ public class ErrorManager {
         errorList = errorListStack.pop();
     }
 
-    public static boolean noError() {
-        return errorList.isEmpty();
+    public static boolean hasError() {
+        return !errorList.isEmpty();
     }
 }

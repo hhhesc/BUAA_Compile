@@ -21,6 +21,7 @@ import SyntaxAnalyse.SyntaxTree.SyntaxTreeNode;
 import javax.imageio.event.IIOReadProgressListener;
 import java.util.ArrayList;
 
+//'printf''('FormatString{','Exp}')'';'
 public class PrintfStmt extends Stmt {
     public PrintfStmt(SyntaxTreeNode parent) {
         super(SyntaxNodeType.PrintfStmt, parent);
@@ -46,6 +47,13 @@ public class PrintfStmt extends Stmt {
         int expIndex = 0;
         StringBuilder sb = new StringBuilder();
 
+        ArrayList<Value> exps = new ArrayList<>();
+        for (SyntaxTreeNode child : children) {
+            if (child instanceof Exp) {
+                exps.add(child.toIR());
+            }
+        }
+
         for (int i = 1; i < chars.length - 1; i++) {
             char c = chars[i];
             if (c == '%') {
@@ -56,13 +64,8 @@ public class PrintfStmt extends Stmt {
                     sb = new StringBuilder();
                 }
                 i++;
-                while (expIndex < children.size() && !(children.get(expIndex) instanceof Exp)) {
-                    expIndex++;
-                }
-                if (expIndex==children.size()) {
-                    break;
-                }
-                Value exp = children.get(expIndex).toIR();
+
+                Value exp = exps.get(expIndex);
                 if (exp.isPointer()) {
                     exp = new Load(IRManager.getInstance().declareTempVar(), exp);
                 }

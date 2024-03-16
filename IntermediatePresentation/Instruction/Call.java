@@ -1,11 +1,15 @@
 package IntermediatePresentation.Instruction;
 
+import IntermediatePresentation.BasicBlock;
 import IntermediatePresentation.ConstNumber;
 import IntermediatePresentation.Function.Function;
 import IntermediatePresentation.IRManager;
 import IntermediatePresentation.Value;
+import Optimizer.Optimizer;
 import TargetCode.Instruction.Jump.Jal;
 import TargetCode.Instruction.Li;
+import TargetCode.Instruction.Memory.Lw;
+import TargetCode.Instruction.Memory.Sw;
 import TargetCode.Instruction.Move;
 import TargetCode.Instruction.Syscall;
 import TargetCode.MipsManager;
@@ -15,12 +19,9 @@ import TargetCode.RegisterManager;
 import java.util.ArrayList;
 
 public class Call extends Instruction {
-    private final ArrayList<Value> params = new ArrayList<>();
-    private final Function function;
 
     public Call(Function function, ArrayList<Value> params) {
         super("CALL", function.getType());
-        this.function = function;
         if (function.isVoid()) {
             use(function);
         } else {
@@ -30,13 +31,11 @@ public class Call extends Instruction {
 
         for (Value v : params) {
             use(v);
-            this.params.add(v);
         }
     }
 
     public Call(Function function, Value... params) {
         super("CALL");
-        this.function = function;
         if (function.isVoid()) {
             use(function);
         } else {
@@ -46,12 +45,12 @@ public class Call extends Instruction {
 
         for (Value v : params) {
             use(v);
-            this.params.add(v);
         }
     }
 
     public String toString() {
         StringBuilder sb = new StringBuilder();
+        Function function = (Function) operandList.get(0);
         if (function.isVoid()) {
             sb.append("call void ");
         } else {
@@ -59,11 +58,14 @@ public class Call extends Instruction {
         }
         sb.append(function.getReg()).append("(");
 
-        for (Value param : params) {
-            sb.append(param.getTypeString()).append(" ");
-            sb.append(param.getReg()).append(", ");
+
+        for (Value param : operandList) {
+            if (!(param instanceof Function)) {
+                sb.append(param.getTypeString()).append(" ");
+                sb.append(param.getReg()).append(", ");
+            }
         }
-        if (params.size() != 0) {
+        if (operandList.size() != 1) {
             sb = new StringBuilder(sb.substring(0, sb.length() - 2));
         }
         sb.append(")\n");
@@ -72,9 +74,10 @@ public class Call extends Instruction {
 
     public void toMips() {
         super.toMips();
+        Function function = (Function) operandList.get(0);
+        int curParamN = getBlock().getFunction().getParam().getParams().size();
         if (function.equals(Function.putint)) {
-            MipsManager.instance().push(RegisterManager.a0);
-            Value param = params.get(0);
+            Value param = operandList.get(1);
             if (param instanceof ConstNumber n) {
                 new Li(RegisterManager.a0, n.getVal());
             } else {
@@ -83,69 +86,92 @@ public class Call extends Instruction {
             }
             new Li(RegisterManager.v0, 1);
             new Syscall();
-            MipsManager.instance().popTo(RegisterManager.a0);
         } else if (function.equals(Function.getint)) {
             new Li(RegisterManager.v0, 5);
             Register dest = RegisterManager.instance().getRegOf(this);
             boolean noRegAllocated = dest == null;
             if (noRegAllocated) {
-                dest = RegisterManager.t0;
+                dest = RegisterManager.k0;
             }
             new Syscall();
-            new Move(dest, RegisterManager.v0);
-            if (noRegAllocated) {
-                MipsManager.instance().pushTempVar(this, dest);
+
+            if (userList.size() != 0) {
+                new Move(dest, RegisterManager.v0);
+                if (noRegAllocated) {
+                    MipsManager.instance().pushTempVar(this, dest);
+                }
             }
         } else {
+            ArrayList<Value> params = new ArrayList<>(operandList);
+            params.remove(0);
             /*
                 1. 保存现场
-                   保存$fp,$ra以及其他需要使用的寄存器（目前仅有$a0-$a3)
-                   TODO:目前不需要考虑寄存器的保存策略，之后可能要做
+                   保存$ra和已分配的$st寄存器，$a不用保存，它们已经在栈上有空间了
              */
-
-            //保存当前参数
-            for (int i = 0; i < 4; i++) {
-                MipsManager.instance().push(RegisterManager.instance().getParamRegister(i));
-            }
-
-            //保存$ra和$fp
+            //保存$ra
             MipsManager.instance().push(RegisterManager.ra);
-            MipsManager.instance().push(RegisterManager.fp);
-
-            /*
-                2. 参数传递
-                   将目标函数的第五个及之后的参数压入$sp栈中，然后移动$sp
-             */
-            //保存前四个参数
-            for (int i = 0; i < 4; i++) {
-                if (i == params.size()) {
-                    break;
-                } else {
-                    if (params.get(i) instanceof ConstNumber n) {
-                        new Li(RegisterManager.instance().getParamRegister(i), n.getVal());
-                    } else {
-                        Register register =
-                                MipsManager.instance().getTempVarByRegister(params.get(i), RegisterManager.k0);
-                        new Move(RegisterManager.instance().getParamRegister(i), register);
-                    }
-                    MipsManager.instance().allocEmptyStackSpace();
+            ArrayList<Register> allocatedRegisters = new ArrayList<>();
+            if (Optimizer.instance().hasDispatched()) {
+                //已经分配，并将要使用的寄存器;也即在本指令之前的那个节点处，所有活跃变量分配到的寄存器
+                allocatedRegisters = RegisterManager.instance().activeRegistersWhenCall(this);
+                //需要保存的寄存器是这次call所可能调用的所有函数使用寄存器的闭包
+                ArrayList<Register> registersMayUse =
+                        new ArrayList<>(RegisterManager.instance().shouldSaveRegsWhenCall(getCallingFunction()));
+                allocatedRegisters.retainAll(registersMayUse);
+                for (Register register : allocatedRegisters) {
+                    MipsManager.instance().push(register);
                 }
             }
 
-            if (params.size() >= 5) {
-                for (int i = 4; i < params.size(); i++) {
+
+            /*
+                2. 参数传递
+                   将目标函数的第四个及之后的参数压入$sp栈中，然后移动$sp
+                   建立valueToOffset的目的是识别每个要用到的变量，而函数调用中的Value实际上不会用的，所以不需要push
+             */
+
+            for (int i = 0; i < 3; i++) {
+                if (i == params.size()) {
+                    break;
+                } else {
+                    Register paramRegister = RegisterManager.instance().getParamRegister(i);
+                    Value paramToPush = params.get(i);
+                    if (paramToPush instanceof ConstNumber n) {
+                        new Li(paramRegister, n.getVal());
+                    } else {
+                        Register register = RegisterManager.instance().getRegOf(paramToPush);
+                        if (register != null &&
+                                RegisterManager.instance().isUnassignedParamRegOrNormalReg(register, i)) {
+                            //如果是尚未赋值的参数寄存器，则说明原值未被破坏，可以直接移过去
+                            new Move(paramRegister, register);
+                        } else {
+                            //否则，要从栈上取值
+                            new Lw(paramRegister, MipsManager.instance().getLocalVarAddr(paramToPush),
+                                    RegisterManager.sp);
+                        }
+                    }
+                    new Sw(paramRegister, MipsManager.instance().getStackPointer() - 4 * i, RegisterManager.sp);
+                }
+            }
+
+            if (params.size() >= 4) {
+                for (int i = 3; i < params.size(); i++) {
                     Register register = RegisterManager.k0;
                     if (params.get(i) instanceof ConstNumber n) {
                         new Li(register, n.getVal());
                     } else {
                         register = MipsManager.instance().getTempVarByRegister(params.get(i), RegisterManager.k0);
+                        if (register != null && !RegisterManager.instance().isUnassignedParamRegOrNormalReg(register, 3)) {
+                            register = RegisterManager.k0;
+                            new Lw(register, MipsManager.instance().getLocalVarAddr(params.get(i)), RegisterManager.sp);
+                        }
                     }
-                    MipsManager.instance().push(register);
+                    new Sw(register, MipsManager.instance().getStackPointer() - 4 * i, RegisterManager.sp);
                 }
             }
 
             //移动$sp
-            MipsManager.instance().saveSp(params.size());
+            MipsManager.instance().saveSp();
 
             //3. 跳转
             new Jal(MipsManager.instance().getFunctionLabel(function));
@@ -154,18 +180,23 @@ public class Call extends Instruction {
                 4. 返回，恢复现场
                     1) 保存返回值
                     2) 恢复当前函数参数
-                    2) 恢复$ra和$fp
+                    2) 恢复$ra
                     3) 移动$sp
              */
-
             //移动$sp
             MipsManager.instance().resetSp();
-            //恢复寄存器$ra,$fp
-            MipsManager.instance().popTo(RegisterManager.fp);
+            //恢复$st
+            if (Optimizer.instance().hasOptimized()) {
+                for (int i = allocatedRegisters.size() - 1; i >= 0; i--) {
+                    MipsManager.instance().popTo(allocatedRegisters.get(i));
+                }
+            }
+            //恢复寄存器$ra
             MipsManager.instance().popTo(RegisterManager.ra);
 
-            for (int i = 3; i >= 0; i--) {
-                MipsManager.instance().popTo(RegisterManager.instance().getParamRegister(i));
+            for (int i = 0; i < Math.min(curParamN, 3); i++) {
+                //先load再说，deadcode优化以后做
+                new Lw(RegisterManager.instance().getParamRegister(i), -4 * i, RegisterManager.sp);
             }
 
             //保存返回值
@@ -179,4 +210,70 @@ public class Call extends Instruction {
             }
         }
     }
+
+    public boolean isUseless() {
+        return !Optimizer.instance().hasSideEffect(getCallingFunction()) && userList.size() == 0;
+    }
+
+    public boolean isDefInstr() {
+        Function function = (Function) operandList.get(0);
+        return !function.isVoid();
+    }
+
+    public ArrayList<String> GVNHash() {
+//        if (!Optimizer.instance().hasSideEffect(getCallingFunction()) &&
+//                !useGlobalVar() && !Optimizer.instance().getFunctionOptimize().isRecursive(getCallingFunction())) {
+//            //这里不用isUseless，因为不需要userList.size()=0，只要没有副作用就可以GVN
+//            return super.GVNHash();
+//        }
+        return null;
+    }
+
+    public Function getCallingFunction() {
+        return (Function) operandList.get(0);
+    }
+
+    public Integer toConst() {
+        if (Optimizer.instance().hasSideEffect(getCallingFunction())) {
+            //不能有副作用
+            return null;
+        }
+        Function function = (Function) operandList.get(0);
+        Integer retVal = null;
+        if (!function.isVoid()) {
+            for (BasicBlock block : function.getBlocks()) {
+                for (Instruction instruction : block.getInstructionList()) {
+                    if (instruction instanceof Ret ret) {
+
+                        if (ret.getRetValue() instanceof ConstNumber n) {
+                            //必须有且仅有一个返回常数值的ret语句(或返回值相同)
+                            if (retVal == null || retVal == n.getVal()) {
+                                retVal = n.getVal();
+                            } else {
+                                return null;
+                            }
+                        } else {
+                            return null;
+                        }
+                    }
+                }
+            }
+        }
+        return retVal;
+    }
+
+    private boolean useGlobalVar() {
+        for (BasicBlock block : getCallingFunction().getBlocks()) {
+            for (Instruction instruction : block.getInstructionList()) {
+                for (Value operand : instruction.getOperandList()) {
+                    if (operand instanceof GlobalDecl) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+
 }

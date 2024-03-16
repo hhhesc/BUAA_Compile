@@ -57,7 +57,10 @@ public class ConstDef extends SyntaxTreeNode {
 
         if (symbolTableManager.notDeclaredInCurLevel(ident.getSrcStr())) {
             symbolTableManager.varDecl(ident.getSrcStr(), true, dim, lens);
-            symbolTableManager.setVal(ident.getSrcStr(), initVal.getVal());
+            if (dim == 0) {
+                //常量不包括数组元素
+                symbolTableManager.setVal(ident.getSrcStr(), initVal.getVal());
+            }
         } else {
             ErrorManager.addError('b', ident.getLineNumber());
         }
@@ -94,7 +97,7 @@ public class ConstDef extends SyntaxTreeNode {
 
                 //可以求出常数形式的初始值
                 if (IRManager.getInstance().inGlobalDecl()) {
-                    GlobalDecl globalDecl = new GlobalDecl(new ConstNumber(Integer.toString(val)));
+                    GlobalDecl globalDecl = new GlobalDecl(new ConstNumber(Integer.toString(val)), true);
 
                     symbolTableManager.setIRValue(ident, globalDecl);
                 } else {
@@ -107,7 +110,7 @@ public class ConstDef extends SyntaxTreeNode {
                 symbolTableManager.varDecl(ident, true,
                         0, new ArrayList<>());
                 if (IRManager.getInstance().inGlobalDecl()) {
-                    GlobalDecl globalDecl = new GlobalDecl(children.get(2).toIR());
+                    GlobalDecl globalDecl = new GlobalDecl(children.get(2).toIR(), true);
 
                     symbolTableManager.setIRValue(ident, globalDecl);
                 } else {
@@ -123,7 +126,7 @@ public class ConstDef extends SyntaxTreeNode {
             symbolTableManager.varDecl(ident, true, 1, lens);
             if (IRManager.getInstance().inGlobalDecl()) {
                 ArrayInitializer arrayInitializer = (ArrayInitializer) initVal.toIR();
-                GlobalDecl globalDecl = new GlobalDecl(arrayInitializer);
+                GlobalDecl globalDecl = new GlobalDecl(arrayInitializer, true);
                 symbolTableManager.arrayInit(ident, arrayInitializer);
                 symbolTableManager.setIRValue(ident, globalDecl);
             } else {
@@ -142,7 +145,7 @@ public class ConstDef extends SyntaxTreeNode {
             symbolTableManager.varDecl(ident, true, 2, lens);
             if (IRManager.getInstance().inGlobalDecl()) {
                 ArrayInitializer arrayInitializer = (ArrayInitializer) initVal.toIR();
-                GlobalDecl globalDecl = new GlobalDecl(arrayInitializer);
+                GlobalDecl globalDecl = new GlobalDecl(arrayInitializer, true);
                 symbolTableManager.arrayInit(ident, arrayInitializer);
                 symbolTableManager.setIRValue(ident, globalDecl);
             } else {

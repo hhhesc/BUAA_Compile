@@ -10,7 +10,7 @@ import TargetCode.MipsManager;
 import TargetCode.Register;
 import TargetCode.RegisterManager;
 
-import javax.xml.stream.FactoryConfigurationError;
+import java.util.ArrayList;
 
 public class Icmp extends Instruction {
     private final String cond;
@@ -39,20 +39,14 @@ public class Icmp extends Instruction {
 
     public void toMips() {
         super.toMips();
-        String op = cond;
-        if (cond.equals("eq")) {
-            op = "seq";
-        } else if (cond.equals("ne")) {
-            op = "sne";
-        }
+        String op = switch (cond) {
+            case "eq" -> "seq";
+            case "ne" -> "sne";
+            default -> cond;
+        };
 
-        if (op.equals("slt")) {
-            //slt不支持立即数，变为sgt
-            Value temp = operandList.get(0);
-            operandList.set(0, operandList.get(1));
-            operandList.set(1, temp);
-            op = "sgt";
-        }
+        Value oprand1 = operandList.get(0);
+        Value oprand2 = operandList.get(1);
 
         Register dest = RegisterManager.instance().getRegOf(this);
         boolean noRegAllocated = dest == null;
@@ -60,32 +54,34 @@ public class Icmp extends Instruction {
             dest = RegisterManager.k0;
         }
 
-        Value oprand1 = operandList.get(0);
-        Value oprand2 = operandList.get(1);
-        if (oprand1 instanceof ConstNumber n1 && oprand2 instanceof ConstNumber n2) {
-            int val1 = n1.getVal();
-            int val2 = n2.getVal();
-            boolean res = switch (op) {
-                case "sgt" -> val1 > val2;
-                case "sle" -> val1 <= val2;
-                case "sge" -> val1 >= val2;
-                case "seq" -> val1 == val2;
-                case "sne" -> val1 != val2;
-                default -> false;
-            };
-            if (res) {
-                new Li(dest, 1);
-            } else {
-                new Li(dest, 0);
-            }
+
+        if (isConst()) {
+            new Li(dest, toConstNumber().getVal());
         } else if (oprand1 instanceof ConstNumber n) {
-            //这里顺序不能交换的
-            new Li(RegisterManager.k1, n.getVal());
-            new Scmp(op, dest, RegisterManager.k1,
-                    MipsManager.instance().getTempVarByRegister(oprand2, RegisterManager.k0));
-        } else if (oprand2 instanceof ConstNumber) {
-            new Scmp(op, dest, MipsManager.instance().getTempVarByRegister(oprand1, RegisterManager.k0),
-                    ((ConstNumber) oprand2).getVal());
+            op = switch (op) {
+                case "sle" -> "sge";
+                case "sge" -> "sle";
+                case "sgt" -> "slt";
+                case "slt" -> "sgt";
+                default -> op;
+            };
+            if (op.equals("slt") && (n.getVal() > 32767 || n.getVal() < -32768)) {
+                new Li(RegisterManager.k1, n.getVal());
+                new Scmp(op, dest, MipsManager.instance().getTempVarByRegister(oprand2, RegisterManager.k0),
+                        RegisterManager.k1);
+            } else {
+                new Scmp(op, dest, MipsManager.instance().getTempVarByRegister(oprand2, RegisterManager.k0),
+                        n.getVal());
+            }
+        } else if (oprand2 instanceof ConstNumber n) {
+            if (op.equals("slt") && (n.getVal() > 32767 || n.getVal() < -32768)) {
+                new Li(RegisterManager.k1, n.getVal());
+                new Scmp(op, dest, MipsManager.instance().getTempVarByRegister(oprand1, RegisterManager.k0),
+                        RegisterManager.k1);
+            } else {
+                new Scmp(op, dest, MipsManager.instance().getTempVarByRegister(oprand1, RegisterManager.k0),
+                        n.getVal());
+            }
         } else {
             new Scmp(op, dest, MipsManager.instance().getTempVarByRegister(oprand1, RegisterManager.k0),
                     MipsManager.instance().getTempVarByRegister(oprand2, RegisterManager.k1));
@@ -94,5 +90,91 @@ public class Icmp extends Instruction {
         if (noRegAllocated) {
             MipsManager.instance().pushTempVar(this, dest);
         }
+    }
+
+    public ArrayList<String> GVNHash() {
+        ArrayList<String> ret = new ArrayList<>();
+        switch (cond) {
+            case "slt":
+                ret.add("icmp " + cond + " i32 " + operandList.get(0).getReg() +
+                        ", " + operandList.get(1).getReg() + "\n");
+                ret.add("icmp " + "sgt" + " i32 " + operandList.get(1).getReg() +
+                        ", " + operandList.get(0).getReg() + "\n");
+                break;
+            case "sle":
+                ret.add("icmp " + cond + " i32 " + operandList.get(0).getReg() +
+                        ", " + operandList.get(1).getReg() + "\n");
+                ret.add("icmp " + "sge" + " i32 " + operandList.get(1).getReg() +
+                        ", " + operandList.get(0).getReg() + "\n");
+                break;
+            case "sgt":
+                ret.add("icmp " + cond + " i32 " + operandList.get(0).getReg() +
+                        ", " + operandList.get(1).getReg() + "\n");
+                ret.add("icmp " + "slt" + " i32 " + operandList.get(1).getReg() +
+                        ", " + operandList.get(0).getReg() + "\n");
+                break;
+            case "sge":
+                ret.add("icmp " + cond + " i32 " + operandList.get(0).getReg() +
+                        ", " + operandList.get(1).getReg() + "\n");
+                ret.add("icmp " + "sle" + " i32 " + operandList.get(1).getReg() +
+                        ", " + operandList.get(0).getReg() + "\n");
+                break;
+            case "eq":
+                ret.add("icmp " + cond + " i32 " + operandList.get(0).getReg() +
+                        ", " + operandList.get(1).getReg() + "\n");
+                ret.add("icmp " + "eq" + " i32 " + operandList.get(1).getReg() +
+                        ", " + operandList.get(0).getReg() + "\n");
+                break;
+            case "ne":
+                ret.add("icmp " + cond + " i32 " + operandList.get(0).getReg() +
+                        ", " + operandList.get(1).getReg() + "\n");
+                ret.add("icmp " + "ne" + " i32 " + operandList.get(1).getReg() +
+                        ", " + operandList.get(0).getReg() + "\n");
+                break;
+            default:
+                return super.GVNHash();
+        }
+        return ret;
+    }
+
+    public ConstNumber toConstNumber() {
+        assert operandList.get(0) instanceof ConstNumber;
+        assert operandList.get(1) instanceof ConstNumber;
+        int val1 = ((ConstNumber) operandList.get(0)).getVal();
+        int val2 = ((ConstNumber) operandList.get(1)).getVal();
+        boolean res = switch (cond) {
+            case "sgt" -> val1 > val2;
+            case "sle" -> val1 <= val2;
+            case "sge" -> val1 >= val2;
+            case "eq" -> val1 == val2;
+            case "ne" -> val1 != val2;
+            case "slt" -> val1 < val2;
+            default -> false;
+        };
+        if (res) {
+            return new ConstNumber(1);
+        } else {
+            return new ConstNumber(0);
+        }
+    }
+
+    public boolean isConst() {
+        return operandList.get(0) instanceof ConstNumber && operandList.get(1) instanceof ConstNumber;
+    }
+
+    public String getCond() {
+        return cond;
+    }
+
+    public String getOperator(){
+        return switch (cond) {
+            case "sgt" -> ">";
+            case "sle" -> "<=";
+            case "sge" -> ">=";
+            case "eq" -> "==";
+            case "ne" -> "!=";
+            case "slt" -> "<";
+            default -> "";
+        };
     }
 }

@@ -1,27 +1,25 @@
 package TargetCode;
 
+import IntermediatePresentation.Function.Function;
+import IntermediatePresentation.Instruction.Call;
 import IntermediatePresentation.Value;
+import Optimizer.Optimizer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.zip.CRC32;
 
 public class RegisterManager {
     /*
         1. 寄存器使用情况记录
         2. 寄存器分配
-
-        直至目前，先不考虑寄存器的分配
-        暂时先用学长的思路，只留下k0和k1作临时寄存器，即四元式的两个操作数，以k0作为dest
-        临时寄存器保证在一个llvm四元式内部不会破坏，如果有临时变量需要使用，那么现取现用，用完销毁
-        以t0调用存储在内存中的临时变量，用完销毁
-        也即一个llvm四元式解析过程中，只能k0和k1作为操作数，以t0作为存储在内存中的临时变量临时调取的寄存器
      */
 
     private static final RegisterManager INSTANCE = new RegisterManager();
-    private final HashMap<Value, Register> registerOfValue = new HashMap<>();
+    private final HashMap<Function, HashMap<Value, Register>> regOfVal = new HashMap<>();
 
-    private final ArrayList<Register> tempRegisters = new ArrayList<>();
-    private final ArrayList<Register> storageRegisters = new ArrayList<>();
+    private Function curFunction;
 
     public static final Register zero = new Register("$zero");
     public static final Register at = new Register("$at");
@@ -57,24 +55,6 @@ public class RegisterManager {
     public static final Register ra = new Register("$ra");
 
     private RegisterManager() {
-        tempRegisters.add(t0);
-        tempRegisters.add(t1);
-        tempRegisters.add(t2);
-        tempRegisters.add(t3);
-        tempRegisters.add(t4);
-        tempRegisters.add(t5);
-        tempRegisters.add(t6);
-        tempRegisters.add(t7);
-        tempRegisters.add(t8);
-        tempRegisters.add(t9);
-        storageRegisters.add(s0);
-        storageRegisters.add(s1);
-        storageRegisters.add(s2);
-        storageRegisters.add(s3);
-        storageRegisters.add(s4);
-        storageRegisters.add(s5);
-        storageRegisters.add(s6);
-        storageRegisters.add(s7);
     }
 
     public static RegisterManager instance() {
@@ -82,20 +62,77 @@ public class RegisterManager {
     }
 
     public Register getRegOf(Value v) {
-        return registerOfValue.getOrDefault(v, null);
+        //这里从当前的map中取得
+        Register register = regOfVal.get(curFunction).getOrDefault(v, null);
+        if (register == null || register.equals(k0) || register.equals(k1)) {
+            return null;
+        } else {
+            return register;
+        }
     }
 
     public void setRegOf(Value v, Register register) {
-        registerOfValue.put(v, register);
+        //默认该寄存器已经被free过了或者将要被free
+//        System.out.println("set " + v.getReg() + " with " + register);
+        regOfVal.get(curFunction).put(v, register);
     }
 
     public Register getParamRegister(int index) {
         return switch (index) {
-            case 0 -> a0;
-            case 1 -> a1;
-            case 2 -> a2;
-            case 3 -> a3;
+            case 0 -> a1;
+            case 1 -> a2;
+            case 2 -> a3;
             default -> null;
         };
+    }
+
+
+    public boolean isUnassignedParamRegOrNormalReg(Register register, int i) {
+        boolean isParamReg = register.equals(a1) || register.equals(a2) || register.equals(a3);
+        if (!isParamReg) {
+            return true;
+        } else {
+            if (i == 0) {
+                return true;
+            } else if (i == 1) {
+                return !register.equals(a1);
+            } else if (i == 2) {
+                return register.equals(a3);
+            }
+        }
+        return false;
+    }
+
+    public void setCurFunction(Function function) {
+        curFunction = function;
+        if (!regOfVal.containsKey(function)) {
+            regOfVal.put(function, new HashMap<>());
+        }
+    }
+
+    public ArrayList<Register> activeRegistersWhenCall(Call call) {
+        HashSet<Value> activeValues = Optimizer.instance().activeValuesWhenCall(call);
+        HashSet<Register> activeRegisters = new HashSet<>();
+        HashMap<Value, Register> regOfValue = regOfVal.get(curFunction);
+        for (Value value : activeValues) {
+            if (regOfValue.containsKey(value) && regOfValue.get(value) != null) {
+                activeRegisters.add(regOfValue.get(value));
+            }
+        }
+        return new ArrayList<>(activeRegisters);
+    }
+
+    public HashSet<Register> shouldSaveRegsWhenCall(Function function) {
+        if (!Optimizer.instance().hasOptimized()) {
+            return new HashSet<>();
+        }
+        ArrayList<Function> callClosure = Optimizer.instance().closurseWhenCall(function);
+        HashSet<Register> ret = new HashSet<>();
+        for (Function f : callClosure) {
+            if (regOfVal.get(f) != null) {
+                ret.addAll(new HashSet<>(regOfVal.get(f).values()));
+            }
+        }
+        return ret;
     }
 }

@@ -16,4 +16,12 @@ public class La extends MipsInstr {
     public String toString() {
         return "la " + dest + ", " + addr + "\n";
     }
+
+    public Register putToRegister() {
+        return dest;
+    }
+
+    public String getLabel() {
+        return addr;
+    }
 }

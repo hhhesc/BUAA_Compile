@@ -86,7 +86,6 @@ public class VarDef extends SyntaxTreeNode {
                         symbolTableManager.setIRValue(ident, localDecl);
                     }
                 } catch (NullPointerException e) {
-
                     symbolTableManager.varDecl(ident, false,
                             0, new ArrayList<>());
                     if (IRManager.getInstance().inGlobalDecl()) {

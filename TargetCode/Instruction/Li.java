@@ -15,4 +15,16 @@ public class Li extends MipsInstr {
     public String toString() {
         return "li " + register + ", " + imm + "\n";
     }
+
+    public Register putToRegister() {
+        return register;
+    }
+
+    public Register getDest() {
+        return register;
+    }
+
+    public int getImm() {
+        return imm;
+    }
 }

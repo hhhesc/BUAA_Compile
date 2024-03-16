@@ -9,10 +9,10 @@ import TargetCode.MipsManager;
 import java.util.ArrayList;
 
 public class Module extends Value {
-    ArrayList<GlobalDecl> globalDecls = new ArrayList<>();
-    ArrayList<ConstString> constStrings = new ArrayList<>();
-    ArrayList<Function> functions = new ArrayList<>();
-    MainFunction mainFunction = null;
+    private final ArrayList<GlobalDecl> globalDecls = new ArrayList<>();
+    private final ArrayList<ConstString> constStrings = new ArrayList<>();
+    private final ArrayList<Function> functions = new ArrayList<>();
+    private MainFunction mainFunction = null;
 
     public Module() {
         super("MODULE", ValueType.NULL);
@@ -34,6 +34,20 @@ public class Module extends Value {
         this.mainFunction = mainFunction;
     }
 
+    public ArrayList<Function> getFunctions() {
+        return functions;
+    }
+
+    public MainFunction getMainFunction() {
+        return mainFunction;
+    }
+
+    public ArrayList<Function> getAllFunctions() {
+        ArrayList<Function> allFunctions = new ArrayList<>(functions);
+        allFunctions.add(mainFunction);
+        return allFunctions;
+    }
+
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("declare i32 @getint()\n");
@@ -48,10 +62,10 @@ public class Module extends Value {
             sb.append(constString.toString());
         }
         sb.append("\n");
+        sb.append(mainFunction.toString());
         for (Function function : functions) {
             sb.append(function.toString());
         }
-        sb.append(mainFunction.toString());
         return sb.toString();
     }
 
@@ -68,5 +82,13 @@ public class Module extends Value {
         }
         mainFunction.toMips();
         return MipsManager.getFile();
+    }
+
+    public ArrayList<GlobalDecl> getGlobalDecls() {
+        return new ArrayList<>(globalDecls);
+    }
+
+    public void removeGlobalDecl(GlobalDecl globalDecl) {
+        globalDecls.remove(globalDecl);
     }
 }
